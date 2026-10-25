@@ -40,3 +40,49 @@ def test_backoffice_requires_staff(client, db):
     client.force_login(get_user_model().objects.create_user("s", is_staff=True))
     assert client.get("/agence/").status_code == 200
     assert client.get("/agence/planning/").status_code == 200
+
+
+@pytest.fixture
+def staff(db):
+    return get_user_model().objects.create_user("agent", password="Secret-123", is_staff=True)
+
+
+def test_menu_shows_agency_link_to_visitors(client, db):
+    html = client.get("/occasions/").content.decode()
+    assert 'href="/agence/connexion/"' in html and "Espace agence" in html
+
+
+def test_dashboard_redirects_to_site_login_page(client, db):
+    r = client.get("/agence/")
+    assert r.status_code == 302 and r["Location"].startswith("/agence/connexion/?next=/agence/")
+
+
+def test_staff_login_and_logout(client, staff):
+    r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123", "next": "/agence/planning/"})
+    assert r.status_code == 302 and r["Location"] == "/agence/planning/"
+    html = client.get("/agence/").content.decode()
+    assert "Déconnexion" in html and "Espace agence" not in html
+    assert client.post("/agence/deconnexion/").status_code == 302
+    assert client.get("/agence/").status_code == 302
+
+
+def test_login_defaults_to_dashboard(client, staff):
+    r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123"})
+    assert r["Location"] == "/agence/"
+
+
+def test_wrong_password_rejected(client, staff):
+    r = client.post("/agence/connexion/", {"username": "agent", "password": "nope"})
+    assert r.status_code == 200 and "Identifiant ou mot de passe incorrect" in r.content.decode()
+
+
+def test_non_staff_cannot_log_in(client, db):
+    get_user_model().objects.create_user("client", password="Secret-123")
+    r = client.post("/agence/connexion/", {"username": "client", "password": "Secret-123"})
+    assert r.status_code == 200 and "pas accès" in r.content.decode()
+    assert "_auth_user_id" not in client.session
+
+
+def test_external_next_is_ignored(client, staff):
+    r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123", "next": "https://evil.example/"})
+    assert r["Location"] == "/agence/"

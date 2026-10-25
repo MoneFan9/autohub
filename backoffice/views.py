@@ -1,7 +1,10 @@
 from datetime import timedelta
 
+from django import forms
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.admin.views.decorators import staff_member_required as _staff_member_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.views import LoginView
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -14,6 +17,28 @@ from rentals import services
 from rentals.forms import InspectionForm
 from rentals.models import Booking
 from vehicles.models import Vehicle
+
+# Renvoie vers la page de connexion du site, pas vers celle de l'admin Django.
+staff_member_required = _staff_member_required(login_url="backoffice:login")
+
+
+class AgencyAuthenticationForm(AuthenticationForm):
+    error_messages = {
+        **AuthenticationForm.error_messages,
+        "invalid_login": "Identifiant ou mot de passe incorrect.",
+        "not_staff": "Ce compte n'a pas accès à l'espace agence.",
+    }
+
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+        if not user.is_staff:
+            raise forms.ValidationError(self.error_messages["not_staff"], code="not_staff")
+
+
+class AgencyLoginView(LoginView):
+    template_name = "backoffice/login.html"
+    authentication_form = AgencyAuthenticationForm
+    redirect_authenticated_user = True
 
 
 @staff_member_required
