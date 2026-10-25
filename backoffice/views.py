@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from django import forms
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required as _staff_member_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.views import LoginView
 from django.db.models import Count
@@ -18,8 +17,8 @@ from rentals.forms import InspectionForm
 from rentals.models import Booking
 from vehicles.models import Vehicle
 
-# Renvoie vers la page de connexion du site, pas vers celle de l'admin Django.
-staff_member_required = _staff_member_required(login_url="backoffice:login")
+from .roles import agency_required, is_agency_member
+
 
 
 class AgencyAuthenticationForm(AuthenticationForm):
@@ -31,7 +30,7 @@ class AgencyAuthenticationForm(AuthenticationForm):
 
     def confirm_login_allowed(self, user):
         super().confirm_login_allowed(user)
-        if not user.is_staff:
+        if not is_agency_member(user):
             raise forms.ValidationError(self.error_messages["not_staff"], code="not_staff")
 
 
@@ -41,7 +40,7 @@ class AgencyLoginView(LoginView):
     redirect_authenticated_user = True
 
 
-@staff_member_required
+@agency_required
 def dashboard(request):
     now = timezone.now()
     today_end = timezone.localtime(now).replace(hour=23, minute=59, second=59)
@@ -88,25 +87,25 @@ def _run(request, reference, fn, needs_inspection=True):
     return redirect("backoffice:dashboard")
 
 
-@staff_member_required
+@agency_required
 @require_POST
 def start_rental(request, reference):
     return _run(request, reference, services.start_rental)
 
 
-@staff_member_required
+@agency_required
 @require_POST
 def complete_rental(request, reference):
     return _run(request, reference, services.complete_rental)
 
 
-@staff_member_required
+@agency_required
 @require_POST
 def cancel_booking(request, reference):
     return _run(request, reference, services.cancel_booking, needs_inspection=False)
 
 
-@staff_member_required
+@agency_required
 def planning(request):
     """Planning de flotte sur 14 jours (une ligne par véhicule)."""
     start = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)

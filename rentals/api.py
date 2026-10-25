@@ -2,6 +2,7 @@ from rest_framework import mixins, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from backoffice.roles import IsAgencyMember
 from customers.models import Customer
 from customers.services import CustomerMismatch, get_or_create_customer
 from payments.providers import PaymentDeclined
@@ -83,7 +84,7 @@ class ExtraViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class BookingViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
-    """Création publique (paiement inclus). Lecture et actions d'agence réservées au personnel."""
+    """Création publique (paiement inclus). Lecture et actions réservées aux membres d'agence."""
 
     queryset = Booking.objects.select_related("vehicle", "customer").prefetch_related("extras")
     serializer_class = BookingSerializer
@@ -93,7 +94,7 @@ class BookingViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.
     def get_permissions(self):
         if self.action in ("create", "quote"):
             return [permissions.AllowAny()]
-        return [permissions.IsAdminUser()]
+        return [IsAgencyMember()]
 
     @action(detail=False, methods=["post"])
     def quote(self, request):

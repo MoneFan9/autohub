@@ -13,15 +13,15 @@
   <nav class="nav" aria-label="Navigation principale">
     <a href="{% url 'home' %}"{% if current == 'home' or current == 'vehicle-detail' %} aria-current="page"{% endif %}>Location</a>
     <a href="{% url 'used-cars' %}"{% if current == 'used-cars' %} aria-current="page"{% endif %}>Occasions</a>
-    {% if user.is_staff %}
-      <a href="{% url 'backoffice:dashboard' %}"{% if current == 'dashboard' %} aria-current="page"{% endif %}>Tableau de bord</a>
+    {% if is_agency %}
+      <a href="{% url 'backoffice:dashboard' %}"{% if current == 'dashboard' %} aria-current="page"{% endif %}><span class="lg-only">Tableau de bord</span><span class="sm-only">Agence</span></a>
       <a href="{% url 'backoffice:planning' %}"{% if current == 'planning' %} aria-current="page"{% endif %}>Planning</a>
-      <a href="{% url 'admin:index' %}">Admin</a>
-      <form method="post" action="{% url 'backoffice:logout' %}">{% csrf_token %}<button type="submit">Déconnexion</button></form>
+      {% if is_owner %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
     {% else %}
       <a class="nav-cta" href="{% url 'backoffice:login' %}"{% if current == 'login' %} aria-current="page"{% endif %}><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Espace agence</a>
     {% endif %}
   </nav>
+  {% if user.is_authenticated %}<form class="header-logout" method="post" action="{% url 'backoffice:logout' %}">{% csrf_token %}<button type="submit"><svg class="i" aria-hidden="true"><use href="#i-logout"/></svg>Déconnexion</button></form>{% endif %}
 </div></header>
 {% endwith %}
 <main id="contenu">

@@ -14,6 +14,7 @@ def run():
         cur.execute("SELECT pg_advisory_lock(%s)", [LOCK_ID])
         try:
             call_command("migrate", interactive=False, verbosity=0)
+            call_command("ensure_owner", verbosity=0)
             from vehicles.models import Vehicle
 
             if not Vehicle.objects.exists():

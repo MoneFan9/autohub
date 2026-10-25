@@ -5,10 +5,12 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
+from backoffice.roles import AGENCY_GROUP
 from customers.models import Customer
 from payments.services import charge_booking
 from rentals import services
@@ -116,7 +118,8 @@ class Command(BaseCommand):
         user = User.objects.filter(username="agent").first()
         if not user:
             password = os.environ.get("DEMO_AGENT_PASSWORD") or secrets.token_urlsafe(9)
-            user = User.objects.create_superuser("agent", "agent@example.com", password)
+            user = User.objects.create_user("agent", "agent@example.com", password)
+            user.groups.add(Group.objects.get_or_create(name=AGENCY_GROUP)[0])
             if "DEMO_AGENT_PASSWORD" not in os.environ:
                 self.stdout.write(self.style.WARNING(f"Compte agence : agent / {password}"))
         return user

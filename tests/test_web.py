@@ -35,16 +35,16 @@ def test_confirmation_not_visible_to_other_sessions(client, vehicle, customer, t
     assert client.get(f"/reservation/{b.reference}/").status_code == 404
 
 
-def test_backoffice_requires_staff(client, db):
+def test_backoffice_requires_agency_member(client, agent):
     assert client.get("/agence/").status_code == 302
-    client.force_login(get_user_model().objects.create_user("s", is_staff=True))
+    client.force_login(agent)
     assert client.get("/agence/").status_code == 200
     assert client.get("/agence/planning/").status_code == 200
 
 
 @pytest.fixture
-def staff(db):
-    return get_user_model().objects.create_user("agent", password="Secret-123", is_staff=True)
+def staff(agent):
+    return agent
 
 
 def test_menu_shows_agency_link_to_visitors(client, db):
@@ -76,7 +76,7 @@ def test_wrong_password_rejected(client, staff):
     assert r.status_code == 200 and "Identifiant ou mot de passe incorrect" in r.content.decode()
 
 
-def test_non_staff_cannot_log_in(client, db):
+def test_user_outside_agency_cannot_log_in(client, db):
     get_user_model().objects.create_user("client", password="Secret-123")
     r = client.post("/agence/connexion/", {"username": "client", "password": "Secret-123"})
     assert r.status_code == 200 and "pas accès" in r.content.decode()

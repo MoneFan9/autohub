@@ -48,6 +48,6 @@
 <section class="card panel panel-spaced" aria-labelledby="rec"><h2 id="rec">Dernières réservations</h2>
 <div class="table-wrap"><table class="table">
 <thead><tr><th>Référence</th><th>Client</th><th>Véhicule</th><th>Période</th><th class="amount">Total</th><th>Statut</th></tr></thead>
-<tbody>{% for b in recent %}<tr><td><a class="num" href="{% url 'admin:rentals_booking_change' b.pk %}">{{ b.reference }}</a></td><td>{{ b.customer }}</td><td>{{ b.vehicle.title }}</td><td class="num">{{ b.start|date:"d/m" }} → {{ b.end|date:"d/m" }}</td><td class="amount">{{ b.total_amount|floatformat:2 }} €</td><td><span class="badge b-{{ b.status }}">{{ b.get_status_display }}</span></td></tr>{% endfor %}</tbody>
+<tbody>{% for b in recent %}<tr><td>{% if is_owner %}<a class="num" href="{% url 'admin:rentals_booking_change' b.pk %}">{{ b.reference }}</a>{% else %}<span class="num">{{ b.reference }}</span>{% endif %}</td><td>{{ b.customer }}</td><td>{{ b.vehicle.title }}</td><td class="num">{{ b.start|date:"d/m" }} → {{ b.end|date:"d/m" }}</td><td class="amount">{{ b.total_amount|floatformat:2 }} €</td><td><span class="badge b-{{ b.status }}">{{ b.get_status_display }}</span></td></tr>{% endfor %}</tbody>
 </table></div></section>
 {% endblock %}
