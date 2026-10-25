@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% load humanize %}
+{% extends "base.html" %}{% load humanize cars %}
 {% block title %}{{ vehicle.title }}{% endblock %}
 {% block body_class %}has-paybar{% endblock %}
 {% block content %}
@@ -17,7 +17,7 @@
       <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg><div><b>{{ vehicle.year }}</b><span>mise en circulation</span></div></div>
     </div>
     {% if vehicle.description %}<p>{{ vehicle.description }}</p>{% endif %}
-    {% if vehicle.is_for_sale %}<div class="alert info">Ce véhicule est aussi en vente à {{ vehicle.sale_price|floatformat:0|intcomma }} €. <a href="{% url 'used-cars' %}">Voir les occasions</a></div>{% endif %}
+    {% if vehicle.is_for_sale %}<div class="alert info">Ce véhicule est aussi en vente à {{ vehicle.sale_price|fcfa }}. <a href="{% url 'used-cars' %}">Voir les occasions</a></div>{% endif %}
 
     <form id="booking" method="post" novalidate>{% csrf_token %}
       {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% elif form.errors %}<div class="alert error" role="alert">Certains champs sont à corriger, ils sont signalés en rouge ci-dessous.</div>{% endif %}
@@ -30,7 +30,7 @@
             <div class="field full"><span class="label" id="opts-label">Options</span>
               <div class="options" role="group" aria-labelledby="opts-label">
               {% for opt in form.extras %}{% with x=opt.data.value.instance %}
-                <label class="option">{{ opt.tag }}<span class="opt-label">{{ x.label }}</span><span class="opt-price num">{{ x.price_per_day|floatformat:0 }} €/jour{% if x.max_price %}<br><span class="muted">max {{ x.max_price|floatformat:0 }} €</span>{% endif %}</span></label>
+                <label class="option">{{ opt.tag }}<span class="opt-text"><span class="opt-label">{{ x.label }}</span>{% if x.description %}<span class="opt-desc">{{ x.description }}</span>{% endif %}</span><span class="opt-price num">{% if x.max_price == x.price_per_day %}{{ x.price_per_day|fcfa }}<br><span class="muted">forfait</span>{% else %}{{ x.price_per_day|fcfa }}/jour{% if x.max_price %}<br><span class="muted">max {{ x.max_price|fcfa }}</span>{% endif %}{% endif %}</span></label>
               {% endwith %}{% endfor %}
               </div>
             </div>
@@ -49,7 +49,16 @@
           </div>
         </fieldset>
         <fieldset class="step"><legend>Paiement</legend>
-          {% include "_field.html" with f=form.card_number %}
+          <div class="field"><span class="label" id="pm-label">{{ form.payment_method.label }}</span>
+            <div class="options pay-methods" role="radiogroup" aria-labelledby="pm-label">
+            {% for r in form.payment_method %}
+              <label class="option">{{ r.tag }}<span class="opt-text"><span class="opt-label">{{ r.choice_label }}</span><span class="opt-desc">{% if r.data.value == "cash" %}Payé au départ, caution comprise{% elif r.data.value == "card" %}Visa, Mastercard{% else %}Validation sur votre téléphone{% endif %}</span></span></label>
+            {% endfor %}
+            </div>{{ form.payment_method.errors }}
+          </div>
+          <div class="pay-detail" data-for="airtel moov">{% include "_field.html" with f=form.mobile_number %}</div>
+          <div class="pay-detail" data-for="card">{% include "_field.html" with f=form.card_number %}</div>
+          <div class="pay-detail alert info" data-for="cash">Rien à payer en ligne. Vous réglerez la location et la caution en espèces à l'agence, au moment de récupérer le véhicule.</div>
         </fieldset>
       </div>
     </form>
@@ -61,25 +70,26 @@
     <div aria-live="polite" id="quote">
     {% if quote %}
       <table class="summary">
-        <tr><td>Location <span data-q="days">{{ quote.days }}</span> j × {{ vehicle.daily_rate|floatformat:0 }} €</td><td data-q="base_amount">{{ quote.base_amount }} €</td></tr>
-        <tr data-row="extras_amount"{% if not quote.extras_amount %} hidden{% endif %}><td>Options</td><td data-q="extras_amount">{{ quote.extras_amount }} €</td></tr>
-        <tr data-row="discount_amount"{% if not quote.discount_amount %} hidden{% endif %}><td>Remise durée</td><td data-q="discount_amount" data-neg>−{{ quote.discount_amount }} €</td></tr>
-        <tr class="total"><td>Total TTC</td><td data-q="total_amount">{{ quote.total_amount }} €</td></tr>
-        <tr class="deposit"><td>Caution (empreinte, non débitée)</td><td data-q="deposit_amount">{{ quote.deposit_amount }} €</td></tr>
+        <tr><td>Location <span data-q="days">{{ quote.days }}</span> j × {{ vehicle.daily_rate|fcfa }}</td><td data-q="base_amount">{{ quote.base_amount|fcfa }}</td></tr>
+        <tr data-row="extras_amount"{% if not quote.extras_amount %} hidden{% endif %}><td>Options</td><td data-q="extras_amount">{{ quote.extras_amount|fcfa }}</td></tr>
+        <tr data-row="discount_amount"{% if not quote.discount_amount %} hidden{% endif %}><td>Remise durée</td><td data-q="discount_amount" data-neg>−{{ quote.discount_amount|fcfa }}</td></tr>
+        <tr class="total"><td>Total TTC</td><td data-q="total_amount">{{ quote.total_amount|fcfa }}</td></tr>
+        <tr class="deposit"><td>Caution, rendue au retour</td><td data-q="deposit_amount">{{ quote.deposit_amount|fcfa }}</td></tr>
       </table>
     {% else %}
       <p class="alert info">Choisissez des dates valides pour voir le prix.</p>
     {% endif %}
     </div>
-    <button class="btn btn-lg btn-block" type="submit" form="booking" id="pay">{% if quote %}Payer {{ quote.total_amount }} € et réserver{% else %}Réserver{% endif %}</button>
+    <button class="btn btn-lg btn-block" type="submit" form="booking" id="pay">{% if quote %}Payer {{ quote.total_amount|fcfa }} et réserver{% else %}Réserver{% endif %}</button>
     <ul class="trust">
       <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Prix total affiché, sans frais ajoutés</li>
-      <li><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>Caution libérée au retour sans dommage</li>
+      <li><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>Caution rendue au retour sans dommage</li>
+      <li><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>Airtel Money, Moov Money, carte ou espèces</li>
       <li><svg class="i" aria-hidden="true"><use href="#i-cal-check"/></svg>Véhicule bloqué dès la confirmation</li>
     </ul>
   </aside>
 </div>
-{% if quote %}<div class="paybar" aria-hidden="true"><div><div class="total" data-total>{{ quote.total_amount }} €</div><div class="muted small">total pour <span data-days>{{ quote.days }}</span> j, caution en plus</div></div><button class="btn" type="submit" form="booking" tabindex="-1">Réserver</button></div>{% endif %}
+{% if quote %}<div class="paybar" aria-hidden="true"><div><div class="total" data-total>{{ quote.total_amount|fcfa }}</div><div class="muted small">total pour <span data-days>{{ quote.days }}</span> j, caution en plus</div></div><button class="btn" type="submit" form="booking" tabindex="-1">Réserver</button></div>{% endif %}
 {% endblock %}
 {% block scripts %}
 <script>
@@ -87,8 +97,16 @@
   const form = document.getElementById("booking");
   const box = document.getElementById("quote");
   const pay = document.getElementById("pay");
-  if (!form || !box.querySelector("table")) return;
-  const eur = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
+  if (!form) return;
+  const eur = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "XAF", maximumFractionDigits: 0 });
+  // Moyen de paiement : n'afficher que le champ utile (tout reste visible sans JavaScript).
+  const details = form.querySelectorAll(".pay-detail");
+  let lastTotal = null;
+  function syncPayment() {
+    const m = (form.querySelector("[name=payment_method]:checked") || {}).value;
+    details.forEach((d) => { d.hidden = !d.dataset.for.split(" ").includes(m); });
+    pay.textContent = m === "cash" ? "Réserver, paiement en agence" : lastTotal ? "Payer " + eur.format(lastTotal) + " et réserver" : pay.textContent;
+  }
   const csrf = form.querySelector("[name=csrfmiddlewaretoken]").value;
   let timer;
   async function refresh() {
@@ -108,14 +126,17 @@
         el.textContent = k === "days" ? q.days : (el.hasAttribute("data-neg") ? "−" : "") + eur.format(v);
       });
       box.querySelectorAll("[data-row]").forEach((row) => { row.hidden = Number(q[row.dataset.row]) === 0; });
-      pay.textContent = "Payer " + eur.format(Number(q.total_amount)) + " et réserver";
+      lastTotal = Number(q.total_amount); syncPayment();
       document.querySelectorAll("[data-total]").forEach((el) => { el.textContent = eur.format(Number(q.total_amount)); });
       document.querySelectorAll("[data-days]").forEach((el) => { el.textContent = q.days; });
     } catch (e) { /* le prix serveur reste affiché */ }
   }
   form.addEventListener("change", (e) => {
-    if (["start", "end", "extras"].includes(e.target.name)) { clearTimeout(timer); timer = setTimeout(refresh, 150); }
+    if (e.target.name === "payment_method") syncPayment();
+    if (box.querySelector("table") && ["start", "end", "extras"].includes(e.target.name)) { clearTimeout(timer); timer = setTimeout(refresh, 150); }
   });
+  {% if quote %}lastTotal = {{ quote.total_amount|floatformat:"0u" }};{% endif %}
+  syncPayment();
 })();
 </script>
 {% endblock %}

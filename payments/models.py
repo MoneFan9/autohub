@@ -16,7 +16,14 @@ class Payment(models.Model):
     kind = models.CharField(max_length=16, choices=Kind.choices)
     status = models.CharField(max_length=10, choices=Status.choices)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    class Method(models.TextChoices):
+        AIRTEL = "airtel", "Airtel Money"
+        MOOV = "moov", "Moov Money"
+        CARD = "card", "Carte bancaire"
+        CASH = "cash", "Espèces"
+
     provider = models.CharField(max_length=20)
+    method = models.CharField("moyen", max_length=10, choices=Method.choices, blank=True)
     provider_ref = models.CharField(max_length=100, blank=True)
     error = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -26,4 +33,4 @@ class Payment(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.get_kind_display()} {self.amount} € ({self.booking})"
+        return f"{self.get_kind_display()} {self.amount:.0f} FCFA ({self.booking})"

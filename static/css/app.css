@@ -12,6 +12,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body { margin: 0; font: 400 15px/1.5 var(--font); color: var(--ink); background: var(--bg); }
 h1, h2, h3 { line-height: 1.2; letter-spacing: -.02em; margin: 0; }
@@ -120,7 +121,7 @@ a.vehicle-card:hover { text-decoration: none; box-shadow: var(--shadow-2); borde
 .car { position: relative; aspect-ratio: 16 / 9; background: linear-gradient(160deg, #eef3fb, #f8fafc 70%); display: grid; place-items: center; }
 .car.city { background: linear-gradient(160deg, #eaf4ff, #f8fafc 70%); }
 .car.suv { background: linear-gradient(160deg, #eef6f0, #f8fafc 70%); }
-.car.van { background: linear-gradient(160deg, #f6f1ea, #f8fafc 70%); }
+.car.van, .car.pickup { background: linear-gradient(160deg, #f6f1ea, #f8fafc 70%); }
 .car.premium { background: linear-gradient(160deg, #eceaf6, #f8fafc 70%); }
 .car svg { width: 82%; height: auto; }
 .car .paint { fill: var(--paint); stroke: rgba(15,23,42,.18); stroke-width: 1.2; }
@@ -285,3 +286,9 @@ a.vehicle-card:hover { text-decoration: none; box-shadow: var(--shadow-2); borde
 .qr svg { width: 100%; height: auto; }
 .secret { word-break: break-all; font-size: 13px; background: var(--surface-2); padding: 2px 6px; border-radius: 4px; }
 .head-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.opt-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.opt-desc { font-size: 12px; color: var(--muted); }
+.pay-methods { margin-bottom: var(--s-4); }
+.pay-detail { margin-top: var(--s-2); }
+.cash-check { grid-column: 1 / -1; display: flex; gap: var(--s-2); align-items: center; font-size: 14px; font-weight: 600; color: var(--warn); }
+.cash-check input { width: 18px; height: 18px; min-height: 0; accent-color: var(--warn); }

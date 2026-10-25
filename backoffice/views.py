@@ -118,7 +118,7 @@ def dashboard(request):
     return render(request, "backoffice/dashboard.html", context)
 
 
-def _run(request, reference, fn, needs_inspection=True):
+def _run(request, reference, fn, needs_inspection=True, with_cash=False):
     booking = get_object_or_404(Booking, reference=reference)
     kwargs = {}
     if needs_inspection:
@@ -127,6 +127,8 @@ def _run(request, reference, fn, needs_inspection=True):
             messages.error(request, f"{booking.reference} : état des lieux incomplet.")
             return redirect("backoffice:dashboard")
         kwargs = {**form.cleaned_data, "user": request.user}
+        if not with_cash:
+            kwargs.pop("cash_received")
     try:
         fn(booking, **kwargs)
         messages.success(request, f"{booking.reference} : {booking.get_status_display().lower()}.")
@@ -138,7 +140,7 @@ def _run(request, reference, fn, needs_inspection=True):
 @agency_required
 @require_POST
 def start_rental(request, reference):
-    return _run(request, reference, services.start_rental)
+    return _run(request, reference, services.start_rental, with_cash=True)
 
 
 @agency_required

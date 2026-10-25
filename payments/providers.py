@@ -10,20 +10,23 @@ class PaymentDeclined(Exception):
 
 class FakeProvider:
     name = "fake"
-    # Même convention que Stripe en mode test.
+    # Jeton « tok_declined » ou « <moyen>_declined » : paiement refusé (tests et démo).
     DECLINED_TOKEN = "tok_declined"
+
+    def _declined(self, token):
+        return token == self.DECLINED_TOKEN or token.endswith("_declined")
 
     def _ref(self, prefix):
         return f"{prefix}_{uuid.uuid4().hex[:16]}"
 
     def charge(self, amount, token):
-        if token == self.DECLINED_TOKEN:
-            raise PaymentDeclined("Carte refusée.")
+        if self._declined(token):
+            raise PaymentDeclined("Paiement refusé.")
         return self._ref("ch")
 
     def hold(self, amount, token):
-        if token == self.DECLINED_TOKEN:
-            raise PaymentDeclined("Carte refusée.")
+        if self._declined(token):
+            raise PaymentDeclined("Paiement refusé.")
         return self._ref("pi")
 
     def release(self, hold_ref):

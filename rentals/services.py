@@ -60,18 +60,28 @@ def _require(booking, *statuses):
         raise BookingError(f"Action impossible : réservation {booking.get_status_display().lower()}.")
 
 
+CASH_TOKEN = "cash_ok"
+
+
 def pay_and_confirm(booking, payment_token):
     # Pas de transaction englobante : un paiement refusé doit rester tracé.
     _require(booking, Booking.Status.PENDING)
-    payment_services.charge_booking(booking, payment_token)
+    if payment_token != CASH_TOKEN:
+        # Espèces : rien n'est encaissé en ligne, l'agence encaisse au départ.
+        payment_services.charge_booking(booking, payment_token)
     booking.status = Booking.Status.CONFIRMED
     booking.save(update_fields=["status", "updated_at"])
     return booking
 
 
 @transaction.atomic
-def start_rental(booking, *, mileage, fuel_level, damages="", user=None):
+def start_rental(booking, *, mileage, fuel_level, damages="", user=None, cash_received=False):
     _require(booking, Booking.Status.CONFIRMED)
+    due = payment_services.balance_due(booking)
+    if due > 0:
+        if not cash_received:
+            raise BookingError(f"Paiement en espèces à encaisser avant le départ : {due:.0f} FCFA + caution {booking.deposit_amount:.0f} FCFA.")
+        payment_services.record_cash(booking)
     Inspection.objects.create(
         booking=booking, kind=Inspection.Kind.PICKUP, mileage=mileage,
         fuel_level=fuel_level, damages=damages, performed_by=user,

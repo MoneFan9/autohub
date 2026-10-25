@@ -2,11 +2,11 @@ import math
 from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal
 
-CENT = Decimal("0.01")
+FRANC = Decimal("1")  # le franc CFA n'a pas de centimes
 
 # Remise dégressive selon la durée : (jours minimum, taux)
 DURATION_DISCOUNTS = [(30, Decimal("0.25")), (7, Decimal("0.10")), (3, Decimal("0.05"))]
-MIN_DEPOSIT = Decimal("300")
+MIN_DEPOSIT = Decimal("100000")
 DEPOSIT_DAYS = 3
 
 
@@ -42,13 +42,13 @@ def quote(vehicle, start, end, extras=()):
         if extra.max_price is not None:
             price = min(price, extra.max_price)
         extras_total += price
-    discount = (base * discount_rate(days)).quantize(CENT, ROUND_HALF_UP)
+    discount = (base * discount_rate(days)).quantize(FRANC, ROUND_HALF_UP)
     deposit = max(MIN_DEPOSIT, vehicle.daily_rate * DEPOSIT_DAYS)
     return Quote(
         days=days,
-        base_amount=base.quantize(CENT),
-        extras_amount=extras_total.quantize(CENT),
+        base_amount=base.quantize(FRANC),
+        extras_amount=extras_total.quantize(FRANC),
         discount_amount=discount,
-        total_amount=(base + extras_total - discount).quantize(CENT),
-        deposit_amount=deposit.quantize(CENT),
+        total_amount=(base + extras_total - discount).quantize(FRANC),
+        deposit_amount=deposit.quantize(FRANC),
     )

@@ -27,7 +27,7 @@ class TestPricing:
         assert q.discount_amount == Decimal("28.00")
         assert q.extras_amount == Decimal("20.00")  # plafonné
         assert q.total_amount == Decimal("272.00")
-        assert q.deposit_amount == Decimal("300.00")
+        assert q.deposit_amount == Decimal("100000")  # caution minimale en FCFA
 
     def test_end_before_start_rejected(self, vehicle, t0):
         with pytest.raises(ValueError):
@@ -122,3 +122,29 @@ class TestLifecycle:
         assert Payment.objects.filter(booking=b, status="failed").exists()
         b.refresh_from_db()
         assert b.status == Booking.Status.PENDING
+
+
+class TestCash:
+    def test_cash_booking_confirmed_without_online_payment(self, vehicle, customer, t0):
+        b = services.pay_and_confirm(book(vehicle, customer, t0, t0 + D), services.CASH_TOKEN)
+        assert b.status == Booking.Status.CONFIRMED and not b.payments.exists()
+        assert b.balance_due == b.total_amount
+
+    def test_departure_requires_cash_collection(self, vehicle, customer, t0):
+        b = services.pay_and_confirm(book(vehicle, customer, t0, t0 + D), services.CASH_TOKEN)
+        with pytest.raises(services.BookingError, match="espèces"):
+            services.start_rental(b, mileage=10, fuel_level=100)
+        services.start_rental(b, mileage=10, fuel_level=100, cash_received=True)
+        kinds = set(b.payments.values_list("kind", "method"))
+        assert kinds == {("charge", "cash"), ("deposit_hold", "cash")}
+        assert b.balance_due == 0
+
+    def test_cancelling_unpaid_cash_booking_refunds_nothing(self, vehicle, customer, t0):
+        b = services.pay_and_confirm(book(vehicle, customer, t0, t0 + D), services.CASH_TOKEN)
+        services.cancel_booking(b)
+        assert not b.payments.exists()
+
+    def test_mobile_money_method_is_recorded(self, vehicle, customer, t0):
+        b = services.pay_and_confirm(book(vehicle, customer, t0, t0 + D), "airtel_ok")
+        assert set(b.payments.values_list("method", flat=True)) == {"airtel"}
+        assert b.balance_due == 0

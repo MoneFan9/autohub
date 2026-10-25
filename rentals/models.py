@@ -12,8 +12,9 @@ from psycopg.types.range import Range
 class Extra(models.Model):
     code = models.SlugField(unique=True)
     label = models.CharField("libellé", max_length=80)
-    price_per_day = models.DecimalField("prix / jour", max_digits=6, decimal_places=2)
-    max_price = models.DecimalField("plafond", max_digits=8, decimal_places=2, null=True, blank=True)
+    price_per_day = models.DecimalField("prix / jour", max_digits=10, decimal_places=2)
+    max_price = models.DecimalField("plafond", max_digits=12, decimal_places=2, null=True, blank=True)
+    description = models.CharField(max_length=160, blank=True)
 
     class Meta:
         verbose_name = "option"
@@ -79,6 +80,12 @@ class Booking(models.Model):
 
     def __str__(self):
         return self.reference
+
+    @property
+    def balance_due(self):
+        from payments.services import balance_due
+
+        return balance_due(self)
 
     @property
     def start(self):

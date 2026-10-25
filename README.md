@@ -1,6 +1,8 @@
-# AutoHub V1
+# AutoHub
 
-Location et vente de véhicules, Django 5 + PostgreSQL.
+Location et vente de véhicules au Gabon (Libreville, Port-Gentil, Franceville), Django 5 + PostgreSQL.
+
+Montants en francs CFA (XAF, sans centimes), fuseau Africa/Libreville. Paiement : Airtel Money, Moov Money, carte bancaire ou espèces en agence (encaissées par l'agent au départ, caution comprise).
 
 ## Lancer
 
@@ -9,6 +11,7 @@ docker compose up -d db          # ou un PostgreSQL 16 local
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py seed_demo       # affiche le mot de passe du compte « agent »
+# python manage.py reset_demo --oui  # efface agences, flotte, clients, réservations et recharge la démo
 python manage.py runserver
 ```
 

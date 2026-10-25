@@ -75,6 +75,7 @@ class InspectionSerializer(serializers.Serializer):
     mileage = serializers.IntegerField(min_value=0)
     fuel_level = serializers.IntegerField(min_value=0, max_value=100)
     damages = serializers.CharField(required=False, allow_blank=True, default="")
+    cash_received = serializers.BooleanField(required=False, default=False)
 
 
 class ExtraViewSet(viewsets.ReadOnlyModelViewSet):
@@ -126,13 +127,14 @@ class BookingViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.
             return Response({"detail": str(exc)}, status=status.HTTP_402_PAYMENT_REQUIRED)
         return Response(BookingSerializer(booking).data, status=status.HTTP_201_CREATED)
 
-    def _transition(self, request, fn, with_inspection=True):
+    def _transition(self, request, fn, with_inspection=True, drop=()):
         booking = self.get_object()
         kwargs = {}
         if with_inspection:
             s = InspectionSerializer(data=request.data)
             s.is_valid(raise_exception=True)
-            kwargs = {**s.validated_data, "user": request.user}
+            kwargs = {k: v for k, v in s.validated_data.items() if k not in drop}
+            kwargs["user"] = request.user
         try:
             fn(booking, **kwargs)
         except services.BookingError as exc:
@@ -146,7 +148,7 @@ class BookingViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.
 
     @action(detail=True, methods=["post"])
     def complete(self, request, reference=None):
-        return self._transition(request, services.complete_rental)
+        return self._transition(request, services.complete_rental, drop=("cash_received",))
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, reference=None):
