@@ -16,7 +16,7 @@ def test_home_search_lists_vehicle(client, vehicle):
 def test_booking_through_website(client, vehicle, gps, t0):
     fmt = "%Y-%m-%dT%H:%M"
     data = {
-        "start": t0.strftime(fmt), "end": (t0 + timedelta(days=2)).strftime(fmt), "extras": [gps.pk],
+        "start": t0.strftime(fmt), "end": (t0 + timedelta(days=2)).strftime(fmt), "extras": [gps.code],
         "first_name": "Hugo", "last_name": "Thomas", "email": "hugo@example.com", "phone": "06",
         "birth_date": "1988-02-02", "license_number": "FR7", "license_issued_on": "2010-02-02",
         "card_number": "4242 4242 4242 4242",

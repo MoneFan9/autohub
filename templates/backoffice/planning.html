@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Planning{% endblock %}
 {% block content %}
-<h1 style="margin:24px 0 12px">Planning flotte · 14 jours</h1>
-<div class="panel planning"><table>
-<tr><th>Véhicule</th>{% for d in days %}<th style="text-align:center">{{ d|date:"D" }}<br>{{ d|date:"d" }}</th>{% endfor %}</tr>
-{% for v, cells in rows %}<tr><td style="white-space:nowrap"><b>{{ v.title }}</b><br><span class="muted">{{ v.plate }} · {{ v.agency.city }}</span></td>
-{% for b in cells %}<td class="cell">{% if b %}<span class="bar {{ b.status }}" title="{{ b.reference }} · {{ b.customer }}">{{ b.customer.last_name }}</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}
+<div class="page-head"><div><h1>Planning de la flotte</h1><p class="muted">14 prochains jours</p></div>
+<div class="legend"><span><i class="bar"></i>Confirmée</span><span><i class="bar active"></i>En cours</span><span><i class="bar pending"></i>En attente</span></div></div>
+<div class="card planning"><table>
+<thead><tr><th class="veh">Véhicule</th>{% for d in days %}<th{% if forloop.first %} class="today"{% endif %}>{{ d|date:"D" }}<br>{{ d|date:"j" }}</th>{% endfor %}</tr></thead>
+<tbody>{% for v, cells in rows %}<tr><th class="veh" scope="row"><b>{{ v.title }}</b><div class="muted small">{{ v.plate }} · {{ v.agency.city }}</div></th>
+{% for b in cells %}<td class="cell{% if forloop.first %} today{% endif %}">{% if b %}<span class="bar {{ b.status }}" title="{{ b.reference }} · {{ b.customer }} · {{ b.get_status_display }}">{{ b.customer.last_name }}</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
 </table></div>
 {% endblock %}

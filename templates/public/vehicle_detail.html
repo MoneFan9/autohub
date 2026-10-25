@@ -1,28 +1,121 @@
 {% extends "base.html" %}{% load humanize %}
 {% block title %}{{ vehicle.title }}{% endblock %}
+{% block body_class %}has-paybar{% endblock %}
 {% block content %}
-<div class="layout">
+<a class="back" href="{% url 'home' %}{% if form.start.value %}?start={{ form.start.value|urlencode }}&end={{ form.end.value|urlencode }}{% endif %}"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg>Retour aux résultats</a>
+<div class="detail">
   <div>
-    <div class="card">{% include "_car.svg.html" with v=vehicle %}
-      <div class="body"><h1 style="margin:0">{{ vehicle.title }} <span class="muted" style="font-weight:400">{{ vehicle.year }}</span></h1>
-        <div class="specs"><span class="tag">{{ vehicle.get_category_display }}</span><span class="tag">{{ vehicle.get_fuel_display }}</span><span class="tag">{{ vehicle.get_transmission_display }}</span><span class="tag">{{ vehicle.seats }} places</span><span class="tag">{{ vehicle.mileage|intcomma }} km</span></div>
-        <p>{{ vehicle.description }}</p><p class="muted">Agence : {{ vehicle.agency }} · {{ vehicle.agency.address }}</p>
-        {% if vehicle.is_for_sale %}<p><span class="badge b-confirmed">Aussi en vente : {{ vehicle.sale_price|floatformat:0|intcomma }} €</span></p>{% endif %}
-      </div></div>
-    {% if quote %}<div class="panel" style="margin-top:16px"><h2>Votre prix</h2><table class="summary">
-      <tr><td>Location {{ quote.days }} jour{{ quote.days|pluralize }} × {{ vehicle.daily_rate|floatformat:0 }} €</td><td>{{ quote.base_amount }} €</td></tr>
-      {% if quote.extras_amount %}<tr><td>Options</td><td>{{ quote.extras_amount }} €</td></tr>{% endif %}
-      {% if quote.discount_amount %}<tr><td>Remise longue durée</td><td>−{{ quote.discount_amount }} €</td></tr>{% endif %}
-      <tr class="total"><td>Total TTC</td><td>{{ quote.total_amount }} €</td></tr>
-      <tr><td class="muted">Caution (empreinte bancaire, non débitée)</td><td class="muted">{{ quote.deposit_amount }} €</td></tr></table></div>{% endif %}
-  </div>
-  <form class="panel" method="post">{% csrf_token %}<h2>Réserver</h2>
-    {{ form.non_field_errors }}
-    <div class="form-grid">
-      {% for f in form %}<div class="{% if f.name in 'extras,return_agency,card_number,email' %}full{% endif %}{% if f.name == 'extras' %} checks{% endif %}">{{ f.label_tag }}{{ f }}{% if f.help_text %}<div class="helptext">{{ f.help_text }}</div>{% endif %}{{ f.errors }}</div>{% endfor %}
+    {% include "_car.html" with v=vehicle badge=True %}
+    <h1 class="detail-title">{{ vehicle.title }}</h1>
+    <p class="muted">{{ vehicle.get_category_display }} · {{ vehicle.year }}{% if vehicle.color %} · {{ vehicle.color }}{% endif %}</p>
+    <div class="facts">
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-seat"/></svg><div><b>{{ vehicle.seats }}</b><span>places</span></div></div>
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-gear"/></svg><div><b>{{ vehicle.get_transmission_display }}</b><span>boîte</span></div></div>
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-{% if vehicle.fuel == 'electric' %}bolt{% elif vehicle.fuel == 'hybrid' %}leaf{% else %}fuel{% endif %}"/></svg><div><b>{{ vehicle.get_fuel_display }}</b><span>énergie</span></div></div>
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-road"/></svg><div><b class="num">{{ vehicle.mileage|intcomma }} km</b><span>au compteur</span></div></div>
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><div><b>{{ vehicle.agency.city }}</b><span>{{ vehicle.agency.name }}</span></div></div>
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg><div><b>{{ vehicle.year }}</b><span>mise en circulation</span></div></div>
     </div>
-    <p><button class="btn" type="submit" style="width:100%">Payer et confirmer</button></p>
-    <p class="helptext">Conducteur : 21 ans minimum, permis de plus de 2 ans.</p>
-  </form>
+    {% if vehicle.description %}<p>{{ vehicle.description }}</p>{% endif %}
+    {% if vehicle.is_for_sale %}<div class="alert info">Ce véhicule est aussi en vente à {{ vehicle.sale_price|floatformat:0|intcomma }} €. <a href="{% url 'used-cars' %}">Voir les occasions</a></div>{% endif %}
+
+    <form id="booking" method="post" novalidate>{% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% elif form.errors %}<div class="alert error" role="alert">Certains champs sont à corriger, ils sont signalés en rouge ci-dessous.</div>{% endif %}
+      <div class="steps">
+        <fieldset class="step"><legend>Votre location</legend>
+          <div class="grid-2">
+            {% include "_field.html" with f=form.start %}
+            {% include "_field.html" with f=form.end %}
+            {% include "_field.html" with f=form.return_agency full=True %}
+            <div class="field full"><span class="label" id="opts-label">Options</span>
+              <div class="options" role="group" aria-labelledby="opts-label">
+              {% for opt in form.extras %}{% with x=opt.data.value.instance %}
+                <label class="option">{{ opt.tag }}<span class="opt-label">{{ x.label }}</span><span class="opt-price num">{{ x.price_per_day|floatformat:0 }} €/jour{% if x.max_price %}<br><span class="muted">max {{ x.max_price|floatformat:0 }} €</span>{% endif %}</span></label>
+              {% endwith %}{% endfor %}
+              </div>
+            </div>
+          </div>
+        </fieldset>
+        <fieldset class="step"><legend>Conducteur</legend>
+          <p class="help step-lead">21 ans minimum et permis obtenu depuis au moins 2 ans.</p>
+          <div class="grid-2">
+            {% include "_field.html" with f=form.first_name %}
+            {% include "_field.html" with f=form.last_name %}
+            {% include "_field.html" with f=form.email %}
+            {% include "_field.html" with f=form.phone %}
+            {% include "_field.html" with f=form.birth_date %}
+            {% include "_field.html" with f=form.license_issued_on %}
+            {% include "_field.html" with f=form.license_number full=True %}
+          </div>
+        </fieldset>
+        <fieldset class="step"><legend>Paiement</legend>
+          {% include "_field.html" with f=form.card_number %}
+        </fieldset>
+      </div>
+    </form>
+  </div>
+
+  <aside class="card summary-card" aria-labelledby="sum-title">
+    <h2 id="sum-title">Récapitulatif</h2>
+    <p class="muted small">{{ vehicle.title }} · {{ vehicle.agency.name }}</p>
+    <div aria-live="polite" id="quote">
+    {% if quote %}
+      <table class="summary">
+        <tr><td>Location <span data-q="days">{{ quote.days }}</span> j × {{ vehicle.daily_rate|floatformat:0 }} €</td><td data-q="base_amount">{{ quote.base_amount }} €</td></tr>
+        <tr data-row="extras_amount"{% if not quote.extras_amount %} hidden{% endif %}><td>Options</td><td data-q="extras_amount">{{ quote.extras_amount }} €</td></tr>
+        <tr data-row="discount_amount"{% if not quote.discount_amount %} hidden{% endif %}><td>Remise durée</td><td data-q="discount_amount" data-neg>−{{ quote.discount_amount }} €</td></tr>
+        <tr class="total"><td>Total TTC</td><td data-q="total_amount">{{ quote.total_amount }} €</td></tr>
+        <tr class="deposit"><td>Caution (empreinte, non débitée)</td><td data-q="deposit_amount">{{ quote.deposit_amount }} €</td></tr>
+      </table>
+    {% else %}
+      <p class="alert info">Choisissez des dates valides pour voir le prix.</p>
+    {% endif %}
+    </div>
+    <button class="btn btn-lg btn-block" type="submit" form="booking" id="pay">{% if quote %}Payer {{ quote.total_amount }} € et réserver{% else %}Réserver{% endif %}</button>
+    <ul class="trust">
+      <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Prix total affiché, sans frais ajoutés</li>
+      <li><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>Caution libérée au retour sans dommage</li>
+      <li><svg class="i" aria-hidden="true"><use href="#i-cal-check"/></svg>Véhicule bloqué dès la confirmation</li>
+    </ul>
+  </aside>
 </div>
+{% if quote %}<div class="paybar" aria-hidden="true"><div><div class="total" data-total>{{ quote.total_amount }} €</div><div class="muted small">total pour <span data-days>{{ quote.days }}</span> j, caution en plus</div></div><button class="btn" type="submit" form="booking" tabindex="-1">Réserver</button></div>{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+(() => {
+  const form = document.getElementById("booking");
+  const box = document.getElementById("quote");
+  const pay = document.getElementById("pay");
+  if (!form || !box.querySelector("table")) return;
+  const eur = new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" });
+  const csrf = form.querySelector("[name=csrfmiddlewaretoken]").value;
+  let timer;
+  async function refresh() {
+    const start = form.start.value, end = form.end.value;
+    if (!start || !end) return;
+    const extras = [...form.querySelectorAll("[name=extras]:checked")].map((el) => el.value);
+    try {
+      const r = await fetch("{% url 'api:booking-quote' %}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": csrf },
+        body: JSON.stringify({ vehicle: {{ vehicle.pk }}, start, end, extras }),
+      });
+      if (!r.ok) return;
+      const q = await r.json();
+      box.querySelectorAll("[data-q]").forEach((el) => {
+        const k = el.dataset.q, v = Number(q[k]);
+        el.textContent = k === "days" ? q.days : (el.hasAttribute("data-neg") ? "−" : "") + eur.format(v);
+      });
+      box.querySelectorAll("[data-row]").forEach((row) => { row.hidden = Number(q[row.dataset.row]) === 0; });
+      pay.textContent = "Payer " + eur.format(Number(q.total_amount)) + " et réserver";
+      document.querySelectorAll("[data-total]").forEach((el) => { el.textContent = eur.format(Number(q.total_amount)); });
+      document.querySelectorAll("[data-days]").forEach((el) => { el.textContent = q.days; });
+    } catch (e) { /* le prix serveur reste affiché */ }
+  }
+  form.addEventListener("change", (e) => {
+    if (["start", "end", "extras"].includes(e.target.name)) { clearTimeout(timer); timer = setTimeout(refresh, 150); }
+  });
+})();
+</script>
 {% endblock %}

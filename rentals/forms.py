@@ -18,6 +18,10 @@ def default_period():
 
 
 class PeriodForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("label_suffix", "")
+        super().__init__(*args, **kwargs)
+
     start = forms.DateTimeField(label="Départ", widget=DT_WIDGET, input_formats=["%Y-%m-%dT%H:%M"])
     end = forms.DateTimeField(label="Retour", widget=DT_WIDGET, input_formats=["%Y-%m-%dT%H:%M"])
 
@@ -33,7 +37,7 @@ class PeriodForm(forms.Form):
 
 
 class SearchForm(PeriodForm):
-    agency = forms.ModelChoiceField(Agency.objects.all(), label="Agence", required=False, empty_label="Toutes")
+    agency = forms.ModelChoiceField(Agency.objects.all(), label="Agence", required=False, empty_label="Toutes les agences")
     category = forms.ChoiceField(label="Catégorie", required=False, choices=[("", "Toutes")] + Vehicle.Category.choices)
     fuel = forms.ChoiceField(label="Énergie", required=False, choices=[("", "Toutes")] + Vehicle.Fuel.choices)
     transmission = forms.ChoiceField(label="Boîte", required=False, choices=[("", "Toutes")] + Vehicle.Transmission.choices)
@@ -41,18 +45,21 @@ class SearchForm(PeriodForm):
 
 
 class BookingForm(PeriodForm):
-    extras = forms.ModelMultipleChoiceField(Extra.objects.all(), required=False, widget=forms.CheckboxSelectMultiple, label="Options")
-    return_agency = forms.ModelChoiceField(Agency.objects.all(), label="Agence de retour", required=False, empty_label="Même agence")
-    first_name = forms.CharField(label="Prénom", max_length=80)
-    last_name = forms.CharField(label="Nom", max_length=80)
-    email = forms.EmailField()
-    phone = forms.CharField(label="Téléphone", max_length=30)
-    birth_date = forms.DateField(label="Date de naissance", widget=forms.DateInput(attrs={"type": "date"}))
-    license_number = forms.CharField(label="N° de permis", max_length=30)
+    extras = forms.ModelMultipleChoiceField(
+        Extra.objects.all(), required=False, widget=forms.CheckboxSelectMultiple, label="Options", to_field_name="code",
+    )
+    return_agency = forms.ModelChoiceField(Agency.objects.all(), label="Agence de retour", required=False, empty_label="Même agence qu'au départ")
+    first_name = forms.CharField(label="Prénom", max_length=80, widget=forms.TextInput(attrs={"autocomplete": "given-name"}))
+    last_name = forms.CharField(label="Nom", max_length=80, widget=forms.TextInput(attrs={"autocomplete": "family-name"}))
+    email = forms.EmailField(label="E-mail", widget=forms.EmailInput(attrs={"autocomplete": "email"}))
+    phone = forms.CharField(label="Téléphone", max_length=30, widget=forms.TextInput(attrs={"autocomplete": "tel", "inputmode": "tel"}))
+    birth_date = forms.DateField(label="Date de naissance", widget=forms.DateInput(attrs={"type": "date", "autocomplete": "bday"}))
+    license_number = forms.CharField(label="Numéro de permis", max_length=30)
     license_issued_on = forms.DateField(label="Permis obtenu le", widget=forms.DateInput(attrs={"type": "date"}))
     card_number = forms.CharField(
-        label="Carte (simulation)", max_length=19, initial="4242 4242 4242 4242",
-        help_text="4000 0000 0000 0002 simule un refus.",
+        label="Numéro de carte", max_length=19, initial="4242 4242 4242 4242",
+        widget=forms.TextInput(attrs={"autocomplete": "cc-number", "inputmode": "numeric"}),
+        help_text="Paiement simulé, aucune carte n'est débitée. 4000 0000 0000 0002 simule un refus.",
     )
 
     CUSTOMER_FIELDS = ["first_name", "last_name", "email", "phone", "birth_date", "license_number", "license_issued_on"]
@@ -66,6 +73,10 @@ class BookingForm(PeriodForm):
 
 
 class InspectionForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("label_suffix", "")
+        super().__init__(*args, **kwargs)
+
     mileage = forms.IntegerField(label="Km", min_value=0)
     fuel_level = forms.IntegerField(label="Carburant %", min_value=0, max_value=100, initial=100)
     damages = forms.CharField(label="Dommages", required=False, widget=forms.TextInput(attrs={"placeholder": "Aucun"}))

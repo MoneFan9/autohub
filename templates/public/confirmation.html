@@ -1,16 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Réservation {{ booking.reference }}{% endblock %}
 {% block content %}
-<div class="panel" style="max-width:640px;margin:32px auto">
-  <h2>Réservation <code>{{ booking.reference }}</code> <span class="badge b-{{ booking.status }}">{{ booking.get_status_display }}</span></h2>
-  <p>{{ booking.customer }}, votre <b>{{ booking.vehicle.title }}</b> vous attend.</p>
+<section class="card confirm" aria-labelledby="ok-title">
+  <div class="check"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></div>
+  <h1 id="ok-title">Votre réservation est confirmée</h1>
+  <p class="muted">Référence <b class="num">{{ booking.reference }}</b>. Conservez-la, l'agence vous la demandera.</p>
   <table class="summary">
-    <tr><td>Départ</td><td>{{ booking.start|date:"l d F Y, H:i" }} · {{ booking.pickup_agency }}</td></tr>
-    <tr><td>Retour</td><td>{{ booking.end|date:"l d F Y, H:i" }} · {{ booking.return_agency }}</td></tr>
+    <tr><td>Véhicule</td><td>{{ booking.vehicle.title }}</td></tr>
+    <tr><td>Départ</td><td><div class="when"><b>{{ booking.start|date:"l j F, H:i" }}</b><span class="muted">{{ booking.pickup_agency.name }}</span></div></td></tr>
+    <tr><td>Retour</td><td><div class="when"><b>{{ booking.end|date:"l j F, H:i" }}</b><span class="muted">{{ booking.return_agency.name }}</span></div></td></tr>
     {% if booking.extras.all %}<tr><td>Options</td><td>{{ booking.extras.all|join:", " }}</td></tr>{% endif %}
     <tr class="total"><td>Payé</td><td>{{ booking.total_amount }} €</td></tr>
-    <tr><td class="muted">Caution bloquée</td><td class="muted">{{ booking.deposit_amount }} €</td></tr>
+    <tr class="deposit"><td>Caution (empreinte)</td><td>{{ booking.deposit_amount }} €</td></tr>
   </table>
-  <p><a class="btn ghost" href="{% url 'home' %}">Retour à l'accueil</a></p>
-</div>
+  <div class="alert info">Le jour du départ, présentez-vous à l'agence {{ booking.pickup_agency.name }} ({{ booking.pickup_agency.address }}) avec votre permis.</div>
+  <a class="btn btn-ghost" href="{% url 'home' %}">Retour à l'accueil</a>
+</section>
 {% endblock %}

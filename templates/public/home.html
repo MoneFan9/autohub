@@ -1,22 +1,63 @@
 {% extends "base.html" %}{% load humanize %}
-{% block title %}Louer une voiture{% endblock %}
-{% block hero %}<section class="hero"><div class="wrap"><h1>Louez la bonne voiture, au bon prix.</h1><p>Disponibilité en temps réel, prix tout compris, réservation en 2 minutes.</p></div></section>{% endblock %}
+{% block title %}Location de voitures{% endblock %}
+{% block hero %}
+<section class="hero"><div class="wrap">
+  <h1>Louez une voiture, sans mauvaise surprise.</h1>
+  <p>Le prix total s'affiche dès la recherche, la caution est annoncée avant de payer, et la réservation se fait en ligne.</p>
+  <form class="search" method="get" role="search" aria-label="Rechercher un véhicule">
+    {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="search-main">
+      {% include "_field.html" with f=form.agency %}
+      {% include "_field.html" with f=form.start %}
+      {% include "_field.html" with f=form.end %}
+      <button class="btn btn-lg" type="submit"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Rechercher</button>
+    </div>
+    <details class="filters"{% if form.category.value or form.fuel.value or form.transmission.value or form.max_rate.value %} open{% endif %}>
+      <summary><svg class="i" aria-hidden="true"><use href="#i-filter"/></svg>Plus de filtres</summary>
+      <div class="filters-grid">
+        {% include "_field.html" with f=form.category %}
+        {% include "_field.html" with f=form.fuel %}
+        {% include "_field.html" with f=form.transmission %}
+        {% include "_field.html" with f=form.max_rate %}
+      </div>
+    </details>
+  </form>
+</div></section>
+{% endblock %}
 {% block content %}
-<form class="search" method="get">
-  {% for f in form %}<div>{{ f.label_tag }}{{ f }}</div>{% endfor %}
-  <div><button class="btn" type="submit" style="width:100%">Rechercher</button></div>
-  {% if form.non_field_errors %}<div style="grid-column:1/-1">{{ form.non_field_errors }}</div>{% endif %}
-</form>
-{% if period %}<p class="muted" style="margin-top:20px">{{ results|length }} véhicule{{ results|length|pluralize }} disponible{{ results|length|pluralize }} du {{ period.0|date:"d/m H:i" }} au {{ period.1|date:"d/m H:i" }}</p>{% endif %}
-<div class="grid">
+{% if period %}
+<div class="toolbar">
+  <h2>{{ results|length }} véhicule{{ results|length|pluralize }} disponible{{ results|length|pluralize }}</h2>
+  <span class="muted small">Du {{ period.0|date:"D j M, H:i" }} au {{ period.1|date:"D j M, H:i" }} · trié par prix total</span>
+</div>
+{% if results %}
+<div class="cards">
 {% for v, q in results %}
-  <a class="card" href="{% url 'vehicle-detail' v.pk %}?start={{ period.0|date:'Y-m-d\TH:i' }}&end={{ period.1|date:'Y-m-d\TH:i' }}" style="color:inherit;text-decoration:none">
-    {% include "_car.svg.html" %}
-    <div class="body"><h3>{{ v.title }}</h3><div class="muted">{{ v.get_category_display }} · {{ v.agency.city }}</div>
-      <div class="specs"><span class="tag">{{ v.get_fuel_display }}</span><span class="tag">{{ v.get_transmission_display }}</span><span class="tag">{{ v.seats }} places</span><span class="tag">{{ v.year }}</span></div>
-      <div class="price"><div><strong>{{ q.total_amount|floatformat:0|intcomma }} €</strong><div class="muted">total {{ q.days }} j{% if q.discount_amount %} · remise {{ q.discount_amount|floatformat:0 }} €{% endif %}</div></div><span class="muted">{{ v.daily_rate|floatformat:0 }} €/j</span></div>
-    </div></a>
-{% empty %}{% if period %}<p>Aucun véhicule disponible sur ces critères.</p>{% endif %}
+  <a class="card vehicle-card" href="{% url 'vehicle-detail' v.pk %}?start={{ period.0|date:'Y-m-d\TH:i' }}&end={{ period.1|date:'Y-m-d\TH:i' }}">
+    {% include "_car.html" with badge=True %}
+    <div class="body">
+      <div class="meta"><span class="where"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg>{{ v.agency.city }}</span><span>{{ v.year }}</span></div>
+      <h3>{{ v.title }}</h3>
+      <ul class="specs">
+        <li><svg class="i" aria-hidden="true"><use href="#i-seat"/></svg>{{ v.seats }} places</li>
+        <li><svg class="i" aria-hidden="true"><use href="#i-gear"/></svg>{{ v.get_transmission_display }}</li>
+        {% include "_energy.html" %}
+      </ul>
+      <div class="price-row">
+        <div><div class="price-total num">{{ q.total_amount|floatformat:0|intcomma }} €</div><div class="price-sub">total pour {{ q.days }} jour{{ q.days|pluralize }}</div></div>
+        <div class="price-sub num price-side">{{ v.daily_rate|floatformat:0 }} €/jour{% if q.discount_amount %}<br><span class="badge b-ok">−{{ q.discount_amount|floatformat:0 }} € durée</span>{% endif %}</div>
+      </div>
+    </div>
+  </a>
 {% endfor %}
 </div>
+{% else %}
+<div class="empty"><h2>Aucun véhicule libre avec ces critères</h2><p>Essayez d'élargir la période, de choisir une autre agence ou de retirer des filtres.</p><a class="btn btn-ghost" href="{% url 'home' %}">Réinitialiser la recherche</a></div>
+{% endif %}
+{% endif %}
+<section class="how" aria-labelledby="how-title"><h2 id="how-title" class="sr-only">Comment ça marche</h2><ol>
+  <li><div class="n">1</div><h3>Choisissez vos dates</h3><p class="muted">Seuls les véhicules réellement libres sur votre période s'affichent, avec le prix total.</p></li>
+  <li><div class="n">2</div><h3>Réservez en ligne</h3><p class="muted">Options, conducteur et paiement sur une seule page. La caution est une empreinte, pas un débit.</p></li>
+  <li><div class="n">3</div><h3>Récupérez en agence</h3><p class="muted">Un état des lieux est fait au départ et au retour, kilométrage et carburant notés.</p></li>
+</ol></section>
 {% endblock %}
