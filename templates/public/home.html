@@ -3,7 +3,7 @@
 {% block hero %}
 <section class="hero"><div class="wrap">
   <h1>Louez une voiture au Gabon, directement à son propriétaire.</h1>
-  <p>Particuliers et professionnels de Libreville, Port-Gentil, Franceville. Prix total en FCFA dès la recherche, avec ou sans chauffeur, payé par Airtel Money, Moov Money, carte ou en espèces à la remise des clés.</p>
+  <p>Particuliers et professionnels de Libreville, Port-Gentil, Franceville. Prix total en FCFA dès la recherche, avec ou sans chauffeur, {% if online_payments == "off" %}payé en espèces au propriétaire à la remise des clés.{% else %}payé par Airtel Money, Moov Money, carte ou en espèces à la remise des clés.{% endif %}</p>
   <form class="search" method="get" role="search" aria-label="Rechercher un véhicule">
     {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
     <div class="search-main">
@@ -34,7 +34,7 @@
 <div class="cards">
 {% for v, q in results %}
   <a class="card vehicle-card" href="{% url 'vehicle-detail' v.pk %}?start={{ period.0|date:'Y-m-d\TH:i' }}&end={{ period.1|date:'Y-m-d\TH:i' }}">
-    {% include "_car.html" with badge=True %}
+    {% include "_cover.html" %}
     <div class="body">
       <div class="meta"><span class="where"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg>{{ v.agency.city }}</span><span>{{ v.year }}</span></div>
       <h3>{{ v.title }}</h3>
@@ -53,7 +53,7 @@
 {% endfor %}
 </div>
 {% else %}
-<div class="empty"><h2>Aucun véhicule libre avec ces critères</h2><p>Essayez d'élargir la période, de choisir une autre ville ou de retirer des filtres.</p><a class="btn btn-ghost" href="{% url 'home' %}">Réinitialiser la recherche</a></div>
+<div class="empty"><h2>Aucun véhicule libre avec ces critères</h2><p>Essayez d'élargir la période, de choisir une autre ville ou de retirer des filtres.</p><a class="btn btn-ghost" href="{% url 'home' %}">Réinitialiser la recherche</a> <a class="btn btn-ghost" href="{% url 'accounts:become_seller' %}">Publier mon véhicule</a></div>
 {% endif %}
 {% endif %}
 <section class="how" aria-labelledby="how-title"><h2 id="how-title" class="sr-only">Comment ça marche</h2><ol>

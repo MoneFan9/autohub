@@ -13,6 +13,7 @@
       {% include "_field.html" with f=form.seats %}{% include "_field.html" with f=form.color %}
       {% include "_field.html" with f=form.mileage %}{% include "_field.html" with f=form.plate %}
       {% include "_field.html" with f=form.description full=True %}
+      {% include "_field.html" with f=form.video_url full=True %}
     </div></fieldset>
     <fieldset class="step"><legend>Location</legend><div class="grid-2">
       <label class="check full">{{ form.is_rentable }} {{ form.is_rentable.label }}</label>
@@ -26,6 +27,92 @@
       <p class="help full">Les acheteurs vous contactent par téléphone ou WhatsApp. Aucune commission sur les ventes.</p>
     </div></fieldset>
   </div>
-  <button class="btn btn-lg" type="submit">{% if vehicle %}Enregistrer{% else %}Publier le véhicule{% endif %}</button>
+  <button class="btn btn-lg" type="submit">{% if vehicle %}Enregistrer{% else %}Publier et ajouter les photos{% endif %}</button>
 </form>
+{% if vehicle %}
+<section class="card panel panel-spaced form-narrow" id="photos" aria-labelledby="ph-title">
+  <h2 id="ph-title">Photos <span class="badge">{{ photos|length }} / {{ max_photos }}</span></h2>
+  <p class="muted">Faites le tour du véhicule, de jour, sans contre-jour. La première photo sert de couverture dans les résultats.</p>
+  {% if missing %}<div class="alert info"><div><b>Vues conseillées manquantes :</b> {{ missing|join:", " }}.</div></div>{% endif %}
+  {% if uploads_enabled %}
+  <form class="upload" method="post" action="{% url 'backoffice:photo_upload' vehicle.pk %}" enctype="multipart/form-data" data-upload>{% csrf_token %}
+    <div class="grid-2">
+      <div class="field full"><label for="ph-files">Ajouter des photos</label><input id="ph-files" type="file" name="images" accept="image/*" multiple required><span class="help">JPEG, PNG ou WebP. Elles sont redimensionnées et la position GPS est retirée.</span></div>
+      <div class="field"><label for="ph-kind">Vue</label><select id="ph-kind" name="kind">{% for v, l in kinds %}<option value="{{ v }}"{% if v == "other" %} selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+      <div class="field upload-go"><button class="btn" type="submit">Envoyer</button></div>
+    </div>
+    <p class="help" data-progress aria-live="polite"></p>
+  </form>
+  {% else %}<div class="alert info" role="status">L'envoi de photos n'est pas encore activé sur le site (stockage en cours de configuration).</div>{% endif %}
+  {% if photos %}<ul class="photo-grid">{% for p in photos %}
+    <li class="photo-item">
+      <img src="{{ p.image.url }}" alt="{{ vehicle.title }}, {{ p.get_kind_display|lower }}" loading="lazy" width="320" height="240">
+      {% if forloop.first %}<span class="badge b-confirmed cover-tag">Couverture</span>{% endif %}
+      <form method="post" action="{% url 'backoffice:photo_action' vehicle.pk p.pk %}" class="photo-kind">{% csrf_token %}<input type="hidden" name="action" value="kind">
+        <label class="sr-only" for="k{{ p.pk }}">Vue</label><select id="k{{ p.pk }}" name="kind" onchange="this.form.submit()">{% for v, l in kinds %}<option value="{{ v }}"{% if v == p.kind %} selected{% endif %}>{{ l }}</option>{% endfor %}</select><noscript><button class="btn btn-sm btn-ghost">OK</button></noscript>
+      </form>
+      <form method="post" action="{% url 'backoffice:photo_action' vehicle.pk p.pk %}" class="photo-actions">{% csrf_token %}
+        {% if not forloop.first %}<button class="btn btn-sm btn-ghost" name="action" value="cover">Couverture</button><button class="btn btn-sm btn-ghost" name="action" value="up" aria-label="Avancer">←</button>{% endif %}
+        {% if not forloop.last %}<button class="btn btn-sm btn-ghost" name="action" value="down" aria-label="Reculer">→</button>{% endif %}
+        <button class="btn btn-sm btn-danger" name="action" value="delete" onclick="return confirm('Supprimer cette photo ?')">Supprimer</button>
+      </form>
+    </li>{% endfor %}</ul>
+  {% else %}<p class="empty-inline muted">Aucune photo pour l'instant : l'annonce affiche un dessin du modèle.</p>{% endif %}
+</section>
+
+<section class="card panel panel-spaced form-narrow" id="dispo" aria-labelledby="dispo-title">
+  <h2 id="dispo-title">Indisponibilités</h2>
+  <p class="muted">Bloquez les dates où vous ne pouvez pas louer ce véhicule : il n'apparaît plus dans les recherches sur ces périodes.</p>
+  {% if blocks %}<ul class="rows">{% for b in blocks %}<li><div class="row-head"><div><b>{{ b.start|date:"D j M, H:i" }} → {{ b.end|date:"D j M, H:i" }}</b>{% if b.reason %}<div class="muted small">{{ b.reason }}</div>{% endif %}</div>
+    <form method="post" action="{% url 'backoffice:block_delete' vehicle.pk b.pk %}">{% csrf_token %}<button class="btn btn-sm btn-ghost">Retirer</button></form></div></li>{% endfor %}</ul>{% endif %}
+  <form method="post" action="{% url 'backoffice:block_add' vehicle.pk %}" novalidate>{% csrf_token %}
+    <div class="grid-2">{% include "_field.html" with f=block_form.start %}{% include "_field.html" with f=block_form.end %}{% include "_field.html" with f=block_form.reason full=True %}</div>
+    <button class="btn btn-ghost" type="submit">Bloquer ces dates</button>
+  </form>
+</section>
+{% endif %}
 {% endblock %}
+{% block scripts %}{% if vehicle and uploads_enabled %}
+<script>
+(() => {
+  // Envoi photo par photo, réduites dans le navigateur (connexions mobiles lentes, limite de taille par requête).
+  const form = document.querySelector("[data-upload]");
+  if (!form || !window.fetch || !HTMLCanvasElement.prototype.toBlob) return;
+  const status = form.querySelector("[data-progress]");
+  const shrink = (file) => new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob((b) => resolve(b || file), "image/jpeg", 0.85);
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+  form.addEventListener("submit", async (e) => {
+    const files = [...form.images.files];
+    if (!files.length) return;
+    e.preventDefault();
+    const btn = form.querySelector("button[type=submit]");
+    btn.disabled = true;
+    const errors = [];
+    for (const [i, f] of files.entries()) {
+      status.textContent = `Envoi ${i + 1} / ${files.length}…`;
+      const data = new FormData();
+      data.append("csrfmiddlewaretoken", form.csrfmiddlewaretoken.value);
+      data.append("kind", form.kind.value);
+      data.append("images", await shrink(f), f.name.replace(/\.[^.]+$/, "") + ".jpg");
+      try {
+        const r = await fetch(form.action, { method: "POST", body: data, headers: { "X-Requested-With": "fetch" } });
+        const j = await r.json(); errors.push(...(j.errors || []));
+      } catch (err) { errors.push(f.name + " : envoi impossible, vérifiez la connexion."); }
+    }
+    status.textContent = errors.length ? errors.join(" · ") : "Photos ajoutées.";
+    if (!errors.length) location.reload(); else btn.disabled = false;
+  });
+})();
+</script>
+{% endif %}{% endblock %}

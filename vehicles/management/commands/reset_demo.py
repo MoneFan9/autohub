@@ -18,6 +18,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument("--oui", action="store_true", help="Confirme l'effacement.")
+        parser.add_argument("--vide", action="store_true", help="N'efface que : pas de rechargement de la démo (lancement réel).")
 
     @transaction.atomic
     def handle(self, *args, **opts):
@@ -26,4 +27,5 @@ class Command(BaseCommand):
         for model in (Payment, Inspection, Booking, Customer, Vehicle, Agency, Extra, Seller):
             model.objects.all().delete()
         get_user_model().objects.filter(username__endswith="@" + DEMO_DOMAIN).delete()
-        call_command("seed_demo")
+        if not opts["vide"]:
+            call_command("seed_demo")

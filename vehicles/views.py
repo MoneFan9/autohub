@@ -3,14 +3,16 @@ from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 
 from customers.services import customer_for_user
 from payments.providers import PaymentDeclined
 from payments.services import MOBILE_MONEY
-from rentals import pricing, services
+from rentals import notifications, pricing, services
 from rentals.forms import BookingForm, PeriodForm, SearchForm, default_period
 from rentals.models import Booking
 
+from .forms import ReportForm
 from .models import Vehicle
 
 SESSION_BOOKINGS = "my_bookings"
@@ -31,7 +33,7 @@ def home(request):
     if form.is_valid():
         d = form.cleaned_data
         services.expire_stale_pending(None)
-        qs = Vehicle.objects.available_between(d["start"], d["end"]).select_related("agency__seller")
+        qs = Vehicle.objects.available_between(d["start"], d["end"]).select_related("agency__seller").prefetch_related("photos")
         if d.get("city"):
             qs = qs.filter(agency__city=d["city"])
         for field in ("category", "fuel", "transmission"):
@@ -60,7 +62,7 @@ def _driver_initial(user):
 
 def vehicle_detail(request, pk):
     services.expire_stale_pending(None)
-    vehicle = get_object_or_404(Vehicle.objects.rentable().select_related("agency__seller"), pk=pk)
+    vehicle = get_object_or_404(Vehicle.objects.rentable().select_related("agency__seller").prefetch_related("photos"), pk=pk)
     seller = vehicle.agency.seller
     methods = seller.payment_methods if seller else None
     form = BookingForm(request.POST or None, initial={**_period_initial(request), **_driver_initial(request.user)}, methods=methods, seller=seller)
@@ -95,7 +97,7 @@ def vehicle_detail(request, pk):
     if period.is_valid():
         extras = form.cleaned_data.get("extras", []) if form.is_bound and hasattr(form, "cleaned_data") else []
         quote = pricing.quote(vehicle, period.cleaned_data["start"], period.cleaned_data["end"], list(extras))
-    return render(request, "public/vehicle_detail.html", {"vehicle": vehicle, "seller": seller, "form": form, "quote": quote})
+    return render(request, "public/vehicle_detail.html", {"vehicle": vehicle, "seller": seller, "form": form, "quote": quote, "report_form": ReportForm()})
 
 
 def _visible_booking(request, reference):
@@ -133,10 +135,29 @@ def booking_confirmation(request, reference):
 
 
 def used_cars(request):
-    qs = Vehicle.objects.for_sale().select_related("agency__seller").order_by("sale_price")
+    qs = Vehicle.objects.for_sale().select_related("agency__seller").prefetch_related("photos").order_by("sale_price")
     return render(request, "public/used_cars.html", {"vehicles": qs})
 
 
 def used_car_detail(request, pk):
-    vehicle = get_object_or_404(Vehicle.objects.for_sale().select_related("agency__seller"), pk=pk)
-    return render(request, "public/used_car_detail.html", {"vehicle": vehicle, "seller": vehicle.agency.seller})
+    vehicle = get_object_or_404(Vehicle.objects.for_sale().select_related("agency__seller").prefetch_related("photos"), pk=pk)
+    return render(request, "public/used_car_detail.html", {"vehicle": vehicle, "seller": vehicle.agency.seller, "report_form": ReportForm()})
+
+
+@require_POST
+def report_vehicle(request, pk):
+    vehicle = get_object_or_404(Vehicle, pk=pk)
+    back = reverse("used-car-detail" if vehicle.is_for_sale else "vehicle-detail", args=[pk])
+    form = ReportForm(request.POST)
+    if request.POST.get("website"):  # piège à robots
+        return redirect(back)
+    if form.is_valid():
+        report = form.save(commit=False)
+        report.vehicle = vehicle
+        report.reporter = request.user if request.user.is_authenticated else None
+        report.save()
+        notifications.vehicle_reported(report)
+        messages.success(request, "Merci, le signalement a été transmis. Il sera examiné rapidement.")
+    else:
+        messages.error(request, "Choisissez un motif pour signaler l'annonce.")
+    return redirect(back)

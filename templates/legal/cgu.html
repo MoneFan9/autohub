@@ -1,0 +1,59 @@
+{% extends "legal/_layout.html" %}
+{% block body %}
+<h2>1. Objet</h2>
+<p>AutoHub est une plateforme en ligne qui met en relation des personnes qui proposent un véhicule à la location ou à la vente (les « loueurs / vendeurs ») et des personnes qui souhaitent en louer ou en acheter un (les « clients »). Les présentes conditions encadrent l'utilisation du site par tous.</p>
+<p><b>AutoHub n'est ni loueur, ni vendeur, ni propriétaire des véhicules.</b> Le contrat de location ou de vente est conclu directement entre le loueur / vendeur et le client. AutoHub fournit l'outil de publication, de réservation et, le cas échéant, d'encaissement pour le compte du loueur.</p>
+
+<h2>2. Compte</h2>
+<ul>
+  <li>L'inscription est gratuite et réservée aux personnes majeures (18 ans). Une personne ne peut avoir qu'un compte.</li>
+  <li>Vous fournissez des informations exactes et les tenez à jour. Vous êtes responsable de la confidentialité de votre mot de passe et de tout ce qui est fait depuis votre compte.</li>
+  <li>Vous pouvez supprimer votre compte à tout moment depuis « Mon compte », sauf réservation en cours ou à venir.</li>
+</ul>
+
+<h2>3. Louer un véhicule (clients)</h2>
+<ul>
+  <li>Le conducteur doit avoir au moins 21 ans et un permis valide obtenu depuis au moins 2 ans. Il présente son permis et une pièce d'identité à son nom au moment de la remise des clés ; le loueur peut refuser la remise si ces documents manquent ou ne correspondent pas.</li>
+  <li>Le prix total est affiché avant la réservation. Une caution est remise au loueur au départ et rendue au retour si le véhicule est rendu sans dommage, à l'heure, avec le niveau de carburant convenu.</li>
+  <li>Le client utilise le véhicule en bon père de famille, respecte le code de la route et répond des amendes, infractions et franchises liées à la période de location.</li>
+  <li>Les règles d'annulation sont décrites dans <a href="{% url 'legal' 'annulation' %}">Annulation, caution et litiges</a>.</li>
+</ul>
+
+<h2>4. Publier un véhicule (loueurs / vendeurs)</h2>
+<p>En créant un profil loueur / vendeur, vous vous engagez à :</p>
+<ul>
+  <li>être propriétaire du véhicule ou dûment autorisé par lui, et pouvoir le prouver (carte grise) ;</li>
+  <li>proposer un véhicule en bon état de marche, assuré pour la location à des tiers lorsqu'il est loué, avec des documents en règle (carte grise, assurance, visite technique) ;</li>
+  <li>publier des informations et des photos exactes et récentes du véhicule réellement proposé, défauts compris ;</li>
+  <li>honorer les réservations confirmées, ou prévenir le client et annuler le plus tôt possible en cas d'empêchement ;</li>
+  <li>vérifier le permis et la pièce d'identité du conducteur avant de remettre les clés, faire l'état des lieux avec lui au départ et au retour, et rendre la caution lorsque le véhicule revient sans dommage ;</li>
+  <li>respecter vos obligations légales et fiscales liées à cette activité (déclaration des revenus, statut professionnel le cas échéant).</li>
+</ul>
+
+<h2>5. Prix, paiement et commission</h2>
+<ul>
+  <li>Le loueur / vendeur fixe librement ses prix et les moyens de paiement qu'il accepte.</li>
+  <li>Location : AutoHub perçoit une commission de {{ platform_fee_pct }} % du montant de la location (hors caution), à la charge du loueur. Lorsque le client paie en ligne, AutoHub reverse au loueur le montant encaissé, commission déduite. Lorsque le client paie en espèces au loueur, le loueur règle la commission à AutoHub.</li>
+  <li>Vente : aucune commission. L'acheteur et le vendeur conviennent ensemble du paiement et des formalités (carte grise, certificat de cession). <b>Ne versez jamais d'acompte avant d'avoir vu le véhicule et ses papiers.</b></li>
+  {% if online_payments == "demo" %}<li>Le site est actuellement en <b>mode démonstration</b> : les paiements en ligne sont simulés et aucun argent n'est débité.</li>{% elif online_payments == "off" %}<li>Les paiements en ligne ne sont pas encore ouverts : la location se règle en espèces au loueur, à la remise des clés.</li>{% endif %}
+</ul>
+
+<h2>6. Comportements interdits</h2>
+<p>Il est interdit de publier un véhicule volé, gagé sans le dire ou inexistant ; d'usurper l'identité d'un tiers ; de demander un paiement hors des moyens indiqués dans le but de tromper ; de publier un contenu illicite, injurieux ou trompeur ; de collecter les données d'autres membres à d'autres fins que la transaction ; de perturber le fonctionnement du site.</p>
+<p>Chacun peut signaler une annonce depuis sa fiche. AutoHub peut retirer une annonce, suspendre ou fermer un compte en cas de manquement, de signalement sérieux ou de risque de fraude, après avoir, sauf urgence, invité le membre à s'expliquer.</p>
+
+<h2>7. Responsabilité</h2>
+<p>AutoHub met tout en œuvre pour que le site fonctionne correctement mais ne garantit pas son accès permanent. En tant qu'intermédiaire, AutoHub n'est pas responsable de l'état, de la conformité ou de l'usage des véhicules, ni de l'exécution des contrats conclus entre membres ; il peut toutefois aider à résoudre un différend (voir <a href="{% url 'legal' 'annulation' %}">litiges</a>). Chaque membre reste responsable de ses annonces, de ses engagements et du respect de la loi.</p>
+
+<h2>8. Données personnelles</h2>
+<p>Le traitement de vos données est décrit dans la <a href="{% url 'legal' 'confidentialite' %}">politique de confidentialité</a>.</p>
+
+<h2>9. Modification des conditions</h2>
+<p>Ces conditions peuvent évoluer. La version applicable est celle en ligne au moment de la réservation ou de la publication. Les membres sont informés des changements importants et peuvent fermer leur compte s'ils ne les acceptent pas.</p>
+
+<h2>10. Droit applicable et litiges</h2>
+<p>Les présentes conditions sont soumises au droit gabonais. En cas de différend, les parties recherchent d'abord une solution amiable ; à défaut, les tribunaux compétents de Libreville sont saisis, sous réserve des règles protectrices applicables aux consommateurs.</p>
+
+<h2>11. Contact</h2>
+<p>{% if contact_email %}Écrivez à <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>.{% else %}Voir les <a href="{% url 'legal' 'mentions-legales' %}">mentions légales</a>.{% endif %}</p>
+{% endblock %}

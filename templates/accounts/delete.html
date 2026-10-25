@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Supprimer mon compte{% endblock %}
+{% block content %}
+<form class="card auth" method="post" novalidate>{% csrf_token %}
+  <div><h1>Supprimer mon compte</h1>
+  <p class="muted">Vos données personnelles (nom, téléphone, permis, e-mail) sont effacées et vos annonces retirées. L'historique des locations passées est conservé sans votre nom, pour la comptabilité. Cette action est définitive.</p></div>
+  {% include "_field.html" with f=form.password %}
+  <button class="btn btn-lg btn-block btn-danger" type="submit">Supprimer définitivement</button>
+  <a class="btn btn-ghost btn-block" href="{% url 'accounts:home' %}">Annuler</a>
+</form>
+{% endblock %}

@@ -10,6 +10,10 @@ User = get_user_model()
 
 
 class SignupForm(UserCreationForm):
+    accept_terms = forms.BooleanField(
+        label="J'accepte les conditions générales d'utilisation et la politique de confidentialité",
+        error_messages={"required": "Acceptez les conditions pour créer votre compte."},
+    )
     first_name = forms.CharField(label="Prénom", max_length=80, widget=forms.TextInput(attrs={"autocomplete": "given-name"}))
     last_name = forms.CharField(label="Nom", max_length=80, widget=forms.TextInput(attrs={"autocomplete": "family-name"}))
     email = forms.EmailField(label="E-mail", widget=forms.EmailInput(attrs={"autocomplete": "email"}))
@@ -63,9 +67,16 @@ class SellerForm(forms.ModelForm):
         }
         labels = {"display_name": "Nom affiché aux clients", "whatsapp": "WhatsApp (facultatif)"}
 
+    accept_terms = forms.BooleanField(
+        label="Je certifie avoir le droit de louer ou vendre ces véhicules, qu'ils sont assurés et en règle, et j'accepte les engagements du loueur / vendeur",
+        error_messages={"required": "Ces engagements sont obligatoires pour publier des véhicules."},
+    )
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("label_suffix", "")
         super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            del self.fields["accept_terms"]
 
     def clean(self):
         data = super().clean()
@@ -86,3 +97,17 @@ class LocationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault("label_suffix", "")
         super().__init__(*args, **kwargs)
+
+
+class DeleteAccountForm(forms.Form):
+    password = forms.CharField(label="Votre mot de passe", widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}))
+
+    def __init__(self, user, *args, **kwargs):
+        kwargs.setdefault("label_suffix", "")
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+    def clean_password(self):
+        if not self.user.check_password(self.cleaned_data["password"]):
+            raise forms.ValidationError("Mot de passe incorrect.")
+        return self.cleaned_data["password"]

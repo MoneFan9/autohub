@@ -3,13 +3,15 @@ from base64 import b32encode
 import segno
 from django import forms
 from django.contrib import messages
-from django.contrib.auth import login
+from django.conf import settings
+from django.contrib.auth import login, logout
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import LoginView, PasswordChangeView
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
-from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django_otp import login as otp_login
 from django_otp.plugins.otp_totp.models import TOTPDevice
@@ -18,7 +20,9 @@ from backoffice.roles import is_seller, owner_required
 from rentals import services
 from rentals.models import Booking
 
-from .forms import LocationForm, LoginForm, SellerForm, SignupForm
+from . import services as account_services
+from .forms import DeleteAccountForm, LocationForm, LoginForm, SellerForm, SignupForm
+from .models import TermsAcceptance
 
 
 class MemberLoginView(LoginView):
@@ -36,11 +40,10 @@ def signup(request):
     form = SignupForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()
+        account_services.record_acceptance(user, TermsAcceptance.Document.TERMS)
         login(request, user, backend="django.contrib.auth.backends.ModelBackend")
         messages.success(request, "Bienvenue sur AutoHub, votre compte est créé.")
         nxt = request.GET.get("next") or request.POST.get("next")
-        from django.utils.http import url_has_allowed_host_and_scheme
-
         if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
             return redirect(nxt)
         return redirect("accounts:home")
@@ -51,18 +54,20 @@ def signup(request):
 def home(request):
     bookings = (Booking.objects.filter(customer__user=request.user)
                 .select_related("vehicle__agency__seller", "pickup_agency").order_by("-created_at"))
-    return render(request, "accounts/home.html", {"bookings": bookings, "now": timezone.now()})
+    for b in bookings:
+        b.can_cancel = services.customer_can_cancel(b)
+    return render(request, "accounts/home.html", {"bookings": bookings, "cancel_hours": settings.CUSTOMER_CANCEL_HOURS})
 
 
 @login_required
 @require_POST
 def cancel(request, reference):
     booking = get_object_or_404(Booking, reference=reference, customer__user=request.user)
-    if booking.start <= timezone.now():
-        messages.error(request, "Cette location a déjà commencé : contactez le loueur.")
+    if not services.customer_can_cancel(booking):
+        messages.error(request, f"Moins de {settings.CUSTOMER_CANCEL_HOURS} h avant le départ : contactez directement le loueur pour annuler.")
     else:
         try:
-            services.cancel_booking(booking)
+            services.cancel_booking(booking, by=request.user)
             messages.success(request, f"Réservation {booking.reference} annulée.")
         except services.BookingError as exc:
             messages.error(request, str(exc))
@@ -80,6 +85,7 @@ def become_seller(request):
         seller = form.save(commit=False)
         seller.user = request.user
         seller.save()
+        account_services.record_acceptance(request.user, TermsAcceptance.Document.SELLER)
         place = location.save(commit=False)
         place.seller = seller
         place.save()
@@ -127,3 +133,37 @@ def security(request):
     qr = segno.make(device.config_url, error="m").svg_inline(scale=5, border=2, dark="#0f172a")
     secret = b32encode(device.bin_key).decode().rstrip("=")
     return render(request, "accounts/security.html", {"form": form, "qr": qr, "secret": secret})
+
+
+@login_required
+def delete_account(request):
+    form = DeleteAccountForm(request.user, request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            account_services.delete_account(request.user)
+        except account_services.AccountError as exc:
+            messages.error(request, str(exc))
+        else:
+            logout(request)
+            messages.success(request, "Votre compte est supprimé et vos données personnelles effacées.")
+            return redirect("home")
+    return render(request, "accounts/delete.html", {"form": form})
+
+
+class ResetView(auth_views.PasswordResetView):
+    template_name = "accounts/password_reset.html"
+    email_template_name = "emails/password_reset.txt"
+    subject_template_name = "emails/password_reset_subject.txt"
+    success_url = reverse_lazy("accounts:password_reset_done")
+
+    def get_context_data(self, **kwargs):
+        return {**super().get_context_data(**kwargs), "email_enabled": settings.EMAIL_BACKEND.endswith("smtp.EmailBackend") or settings.DEBUG}
+
+
+class ResetConfirmView(auth_views.PasswordResetConfirmView):
+    template_name = "accounts/password_reset_confirm.html"
+    success_url = reverse_lazy("accounts:login")
+
+    def form_valid(self, form):
+        messages.success(self.request, "Mot de passe modifié. Connectez-vous avec le nouveau.")
+        return super().form_valid(form)

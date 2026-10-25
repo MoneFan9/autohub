@@ -1,0 +1,6 @@
+{% with url=request.build_absolute_uri %}<div class="share" aria-label="Partager">
+  <span class="muted small">Partager</span>
+  <a class="btn btn-sm btn-ghost" href="https://wa.me/?text={{ share_text|urlencode }}%20{{ url|urlencode }}" target="_blank" rel="noopener">WhatsApp</a>
+  <a class="btn btn-sm btn-ghost" href="https://www.facebook.com/sharer/sharer.php?u={{ url|urlencode }}" target="_blank" rel="noopener">Facebook</a>
+  <button class="btn btn-sm btn-ghost" type="button" data-copy="{{ url }}">Copier le lien</button>
+</div>{% endwith %}

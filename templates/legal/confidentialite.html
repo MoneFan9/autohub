@@ -1,0 +1,45 @@
+{% extends "legal/_layout.html" %}
+{% block body %}
+<p>Cette politique explique quelles données AutoHub collecte, pourquoi, combien de temps et quels sont vos droits. Elle applique la loi gabonaise n° 001/2011 du 25 septembre 2011 relative à la protection des données à caractère personnel et s'inspire des standards internationaux (dont le RGPD européen).</p>
+
+<h2>Responsable du traitement</h2>
+<p>L'éditeur du site indiqué dans les <a href="{% url 'legal' 'mentions-legales' %}">mentions légales</a>.</p>
+
+<h2>Données collectées et finalités</h2>
+<div class="table-wrap"><table class="table">
+<thead><tr><th>Données</th><th>Pourquoi</th><th>Base</th></tr></thead>
+<tbody>
+<tr><td>Nom, prénom, e-mail, mot de passe (chiffré)</td><td>Créer et sécuriser votre compte</td><td>Contrat</td></tr>
+<tr><td>Téléphone, date de naissance, numéro et date du permis</td><td>Réserver un véhicule et vérifier les conditions de conduite ; transmis au loueur concerné</td><td>Contrat</td></tr>
+<tr><td>Profil loueur : nom affiché, ville, téléphone, WhatsApp, numéro de versement, lieux de remise</td><td>Publier des annonces, être contacté, recevoir les paiements</td><td>Contrat</td></tr>
+<tr><td>Annonces, photos, vidéos</td><td>Présenter les véhicules au public</td><td>Contrat</td></tr>
+<tr><td>Réservations, paiements, états des lieux</td><td>Exécuter la location, gérer cautions et litiges, comptabilité</td><td>Contrat, obligation légale</td></tr>
+<tr><td>Acceptation des conditions (date, version)</td><td>Prouver votre accord</td><td>Intérêt légitime</td></tr>
+<tr><td>Adresse IP et tentatives de connexion</td><td>Bloquer les attaques et la fraude</td><td>Intérêt légitime</td></tr>
+</tbody></table></div>
+<p>AutoHub ne vend pas vos données, ne fait pas de publicité ciblée et n'utilise pas d'outil de mesure d'audience tiers.</p>
+
+<h2>Qui voit vos données</h2>
+<ul>
+  <li>Le loueur que vous réservez voit vos nom, téléphone et informations de permis ; vous voyez son nom, son téléphone et le lieu de remise.</li>
+  <li>Les visiteurs voient les annonces et le nom affiché, la ville et le téléphone des vendeurs.</li>
+  <li>Nos sous-traitants techniques, uniquement pour faire fonctionner le service : hébergement du site (Vercel), base de données (Neon, serveurs dans l'Union européenne), stockage des photos, envoi d'e-mails et, lorsqu'il sera activé, prestataire de paiement Mobile Money / carte.</li>
+</ul>
+<p>Ces prestataires peuvent être situés hors du Gabon. Ce transfert est nécessaire au fonctionnement du service et se fait auprès d'acteurs qui garantissent un niveau de protection adapté.</p>
+
+<h2>Durée de conservation</h2>
+<ul>
+  <li>Compte : tant qu'il est actif. À la suppression, les données personnelles sont effacées ou rendues anonymes.</li>
+  <li>Réservations et paiements : conservés sans votre nom après suppression du compte, pendant la durée requise par les obligations comptables.</li>
+  <li>Journaux de connexion : quelques semaines.</li>
+</ul>
+
+<h2>Cookies</h2>
+<p>Le site n'utilise que des cookies indispensables : maintien de la connexion, protection des formulaires (CSRF) et mémorisation des réservations faites depuis votre navigateur. Aucun cookie publicitaire ni de mesure d'audience : aucun consentement n'est donc demandé.</p>
+
+<h2>Sécurité</h2>
+<p>Connexion chiffrée (HTTPS), mots de passe chiffrés, blocage après plusieurs tentatives de connexion, accès d'administration protégé par double authentification.</p>
+
+<h2>Vos droits</h2>
+<p>Vous pouvez accéder à vos données, les corriger, demander leur suppression ou vous opposer à un traitement. Une grande partie se fait directement depuis « Mon compte » (modification de la fiche conducteur à la réservation, suppression du compte). Pour le reste{% if contact_email %}, écrivez à <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% else %}, utilisez le contact indiqué dans les mentions légales{% endif %}. Vous pouvez aussi saisir la Commission nationale pour la protection des données à caractère personnel (CNPDCP) du Gabon.</p>
+{% endblock %}

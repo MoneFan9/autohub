@@ -1,10 +1,11 @@
 {% extends "base.html" %}{% load humanize cars %}
-{% block title %}{{ vehicle.title }} d'occasion{% endblock %}
+{% block title %}{{ vehicle.title }} d'occasion à {{ vehicle.agency.city }}{% endblock %}
+{% block meta %}{% include "_vehicle_meta.html" with v=vehicle kind="sale" %}{% endblock %}
 {% block content %}
 <a class="back" href="{% url 'used-cars' %}"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg>Toutes les occasions</a>
 <div class="detail">
   <div>
-    {% include "_car.html" with v=vehicle badge=True %}
+    {% include "_gallery.html" with v=vehicle %}
     <h1 class="detail-title">{{ vehicle.title }}</h1>
     <p class="muted">{{ vehicle.get_category_display }} · {{ vehicle.year }}{% if vehicle.color %} · {{ vehicle.color }}{% endif %}</p>
     <div class="facts">
@@ -16,6 +17,8 @@
       <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg><div><b>{{ vehicle.year }}</b><span>mise en circulation</span></div></div>
     </div>
     {% if vehicle.description %}<p>{{ vehicle.description }}</p>{% endif %}
+    {% include "_share.html" with share_text=vehicle.title|add:" à vendre sur AutoHub" %}
+    {% include "_report.html" with v=vehicle %}
   </div>
   <aside class="card summary-card" aria-labelledby="price-title">
     <h2 id="price-title" class="sr-only">Prix et vendeur</h2>

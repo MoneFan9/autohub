@@ -1,0 +1,8 @@
+{% load cars %}{% autoescape off %}Bonjour {{ customer.first_name }},
+
+Rappel : votre location {{ b.reference }} commence le {{ b.start|date:"l j F à H:i" }}.
+Lieu : {{ b.pickup_agency.name }}, {{ b.pickup_agency.address }}, {{ b.pickup_agency.city }}
+À apporter : permis de conduire, pièce d'identité{% if b.balance_due %}, {{ b.balance_due|add:b.deposit_amount|fcfa }} en espèces (location + caution){% else %}, caution de {{ b.deposit_amount|fcfa }}{% endif %}.
+Loueur : {{ seller.display_name|default:"AutoHub" }}{% if seller.phone %} — {{ seller.phone }}{% endif %}
+
+— {{ site_url }}{% endautoescape %}

@@ -1,0 +1,12 @@
+{% with photos=v.photos.all %}{% if photos %}
+<div class="gallery" data-gallery>
+  <div class="gallery-track" tabindex="0" aria-label="Photos de {{ v.title }}, faites défiler">
+    {% for p in photos %}<figure class="gallery-slide" id="photo-{{ p.pk }}"><img src="{{ p.image.url }}" alt="{{ v.title }}, {{ p.get_kind_display|lower }}"{% if not forloop.first %} loading="lazy"{% endif %} width="1600" height="1200"><figcaption>{{ p.get_kind_display }} · {{ forloop.counter }}/{{ photos|length }}</figcaption></figure>{% endfor %}
+  </div>
+  {% if photos|length > 1 %}<div class="gallery-thumbs" role="list">{% for p in photos %}<a role="listitem" href="#photo-{{ p.pk }}" aria-label="Photo {{ forloop.counter }} : {{ p.get_kind_display|lower }}"><img src="{{ p.image.url }}" alt="" loading="lazy" width="96" height="72"></a>{% endfor %}</div>{% endif %}
+</div>
+{% else %}{% include "_car.html" with badge=True %}{% endif %}{% endwith %}
+{% if v.video_url %}<section class="video" aria-label="Vidéo de présentation">
+  {% if v.youtube_id %}<div class="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/{{ v.youtube_id }}" title="Vidéo de présentation : {{ v.title }}" loading="lazy" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+  {% else %}<a class="btn btn-ghost" href="{{ v.video_url }}" target="_blank" rel="noopener nofollow">▶ Voir la vidéo de présentation</a>{% endif %}
+</section>{% endif %}

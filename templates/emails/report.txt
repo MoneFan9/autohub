@@ -1,0 +1,7 @@
+{% autoescape off %}Nouveau signalement sur {{ r.vehicle.title }} (n° {{ r.vehicle.pk }}, vendeur : {{ r.vehicle.agency.seller|default:"—" }}).
+
+Motif : {{ r.get_reason_display }}
+Précisions : {{ r.message|default:"—" }}
+Contact : {{ r.reporter.email|default:r.contact|default:"anonyme" }}
+
+À traiter : {{ admin_url }}{% endautoescape %}

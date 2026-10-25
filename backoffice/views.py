@@ -1,9 +1,12 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django.conf import settings
 from django.contrib import messages
 from django.db.models import Count, Q, Sum
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django_otp.plugins.otp_totp.models import TOTPDevice
@@ -13,9 +16,10 @@ from accounts.forms import LocationForm, SellerForm
 from rentals import services
 from rentals.forms import InspectionForm
 from rentals.models import Booking
-from vehicles.models import Vehicle
+from vehicles import services as vehicle_services
+from vehicles.models import Vehicle, VehicleBlock, VehiclePhoto
 
-from .forms import VehicleForm
+from .forms import BlockForm, VehicleForm
 from .roles import is_owner, scope_bookings, scope_vehicles, seller_of, seller_required
 
 EARNING = [Booking.Status.CONFIRMED, Booking.Status.ACTIVE, Booking.Status.COMPLETED]
@@ -65,7 +69,7 @@ def dashboard(request):
 
 def _run(request, reference, fn, needs_inspection=True, with_cash=False):
     booking = get_object_or_404(scope_bookings(Booking.objects.all(), request.user), reference=reference)
-    kwargs = {}
+    kwargs = {} if needs_inspection else {"by": request.user}
     if needs_inspection:
         form = InspectionForm(request.POST)
         if not form.is_valid():
@@ -138,9 +142,88 @@ def vehicle_edit(request, pk=None):
     form = VehicleForm(request.POST or None, instance=vehicle, seller=seller)
     if request.method == "POST" and form.is_valid():
         v = form.save()
-        messages.success(request, f"{v.title} {'mis à jour' if pk else 'publié'}.")
-        return redirect("backoffice:vehicles")
-    return render(request, "backoffice/vehicle_form.html", {"form": form, "vehicle": vehicle, "has_locations": seller.locations.exists()})
+        if pk:
+            messages.success(request, f"{v.title} mis à jour.")
+            return redirect("backoffice:vehicles")
+        messages.success(request, f"{v.title} publié. Ajoutez maintenant les photos : c'est ce qui décide les clients.")
+        return redirect(f"{reverse('backoffice:vehicle_edit', args=[v.pk])}#photos")
+    ctx = {"form": form, "vehicle": vehicle, "has_locations": seller.locations.exists()}
+    if vehicle:
+        ctx.update({
+            "photos": vehicle.photos.all(), "kinds": VehiclePhoto.Kind.choices, "missing": vehicle_services.missing_views(vehicle),
+            "uploads_enabled": settings.MEDIA_UPLOADS_ENABLED, "max_photos": settings.VEHICLE_MAX_PHOTOS,
+            "blocks": vehicle.blocks.filter(period__endswith__gte=timezone.now()), "block_form": BlockForm(),
+        })
+    return render(request, "backoffice/vehicle_form.html", ctx)
+
+
+def _own_vehicle(request, pk):
+    return get_object_or_404(scope_vehicles(Vehicle.objects.all(), request.user), pk=pk)
+
+
+def _back(vehicle, anchor):
+    return redirect(f"{reverse('backoffice:vehicle_edit', args=[vehicle.pk])}#{anchor}")
+
+
+@seller_required
+@require_POST
+def photo_upload(request, pk):
+    vehicle = _own_vehicle(request, pk)
+    files = request.FILES.getlist("images")
+    added, errors = [], []
+    for f in files:
+        try:
+            added.append(vehicle_services.add_photo(vehicle, f, request.POST.get("kind", "other")))
+        except vehicle_services.VehicleError as exc:
+            errors.append(f"{f.name} : {exc}")
+    if request.headers.get("x-requested-with") == "fetch":
+        return JsonResponse({"added": len(added), "errors": errors}, status=200 if added or not errors else 400)
+    if added:
+        messages.success(request, f"{len(added)} photo{'s' if len(added) > 1 else ''} ajoutée{'s' if len(added) > 1 else ''}.")
+    for e in errors or ([] if files else ["Choisissez au moins une photo."]):
+        messages.error(request, e)
+    return _back(vehicle, "photos")
+
+
+@seller_required
+@require_POST
+def photo_action(request, pk, photo_id):
+    vehicle = _own_vehicle(request, pk)
+    photo = get_object_or_404(VehiclePhoto, pk=photo_id, vehicle=vehicle)
+    action = request.POST.get("action")
+    if action == "delete":
+        vehicle_services.delete_photo(photo)
+    elif action in ("up", "down", "cover"):
+        vehicle_services.move_photo(photo, action)
+    elif action == "kind" and request.POST.get("kind") in VehiclePhoto.Kind.values:
+        photo.kind = request.POST["kind"]
+        photo.save(update_fields=["kind"])
+    return _back(vehicle, "photos")
+
+
+@seller_required
+@require_POST
+def block_add(request, pk):
+    vehicle = _own_vehicle(request, pk)
+    form = BlockForm(request.POST)
+    if form.is_valid():
+        d = form.cleaned_data
+        try:
+            vehicle_services.block_period(vehicle, d["start"], d["end"], d["reason"])
+            messages.success(request, "Indisponibilité enregistrée : le véhicule n'apparaît plus dans les recherches sur cette période.")
+        except vehicle_services.VehicleError as exc:
+            messages.error(request, str(exc))
+    else:
+        messages.error(request, "Indiquez une date de début et de fin.")
+    return _back(vehicle, "dispo")
+
+
+@seller_required
+@require_POST
+def block_delete(request, pk, block_id):
+    vehicle = _own_vehicle(request, pk)
+    get_object_or_404(VehicleBlock, pk=block_id, vehicle=vehicle).delete()
+    return _back(vehicle, "dispo")
 
 
 @seller_required

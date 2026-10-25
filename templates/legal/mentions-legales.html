@@ -1,0 +1,17 @@
+{% extends "legal/_layout.html" %}
+{% block body %}
+<h2>Éditeur</h2>
+<p>{% if operator_name %}{{ operator_name }}{% else %}<span class="badge b-pending">À compléter</span> Nom de l'éditeur{% endif %}<br>
+{% if contact_email %}Contact : <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% else %}Contact : <span class="badge b-pending">À compléter</span>{% endif %}</p>
+<p>AutoHub est un service de mise en relation. Il n'est ni loueur ni vendeur des véhicules présentés.</p>
+
+<h2>Hébergement</h2>
+<p>Site : Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis — vercel.com<br>
+Base de données : Neon (serveurs à Francfort, Union européenne) — neon.tech</p>
+
+<h2>Propriété intellectuelle</h2>
+<p>La structure, le code et les textes du site appartiennent à l'éditeur. Les annonces, photos et vidéos restent la propriété de leurs auteurs, qui autorisent AutoHub à les afficher et à les redimensionner pendant la durée de publication.</p>
+
+<h2>Signaler un contenu</h2>
+<p>Chaque annonce comporte un lien « Signaler cette annonce ». Les signalements sont examinés et les contenus illicites retirés.</p>
+{% endblock %}

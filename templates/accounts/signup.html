@@ -11,6 +11,7 @@
     {% include "_field.html" with f=form.password1 full=True %}
     {% include "_field.html" with f=form.password2 full=True %}
   </div>
+  {% include "_check.html" with f=form.accept_terms %}
   <input type="hidden" name="next" value="{{ next }}">
   <button class="btn btn-lg btn-block" type="submit">Créer mon compte</button>
   <p class="muted small center">Déjà inscrit ? <a href="{% url 'accounts:login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Se connecter</a></p>

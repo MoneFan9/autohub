@@ -9,6 +9,7 @@
   </div>
 </fieldset>
 <fieldset class="step"><legend>Paiements acceptés</legend>
+  {% if online_payments == "off" %}<p class="alert info">Pour l'instant, toutes les locations se règlent en espèces à la remise des clés. Vos choix ci-dessous s'appliqueront dès l'ouverture du paiement en ligne.</p>{% endif %}
   <div class="options" role="group" aria-label="Moyens de paiement acceptés">
     <label class="option">{{ form.accepts_airtel }}<span class="opt-text"><span class="opt-label">Airtel Money</span><span class="opt-desc">Reversé sur votre numéro de versement</span></span></label>
     <label class="option">{{ form.accepts_moov }}<span class="opt-text"><span class="opt-label">Moov Money</span><span class="opt-desc">Reversé sur votre numéro de versement</span></span></label>
