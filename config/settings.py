@@ -175,8 +175,8 @@ CUSTOMER_CANCEL_HOURS = 24
 # Éditeur du site (mentions légales, contact). À renseigner dans les variables d'environnement.
 SITE_NAME = "AutoHub"
 SITE_URL = os.environ.get("SITE_URL", "https://autohub-five.vercel.app").rstrip("/")
-OPERATOR_NAME = os.environ.get("OPERATOR_NAME", "")
-CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "")
+OPERATOR_NAME = os.environ.get("OPERATOR_NAME", "monefan9")
+CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "lomep610@gmail.com")
 TERMS_VERSION = "2026-10"
 
 # E-mails (mot de passe oublié, notifications). SMTP de n'importe quel fournisseur (Brevo, Resend, Gmail…) ;

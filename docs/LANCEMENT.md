@@ -9,8 +9,8 @@ Ce guide liste ce qu'il reste à faire pour l'ouvrir au public, sans créer de s
 |---|---|---|
 | `ONLINE_PAYMENTS` | `off` | Aucun agrégateur de paiement n'est branché : tout se règle en espèces à la remise des clés. Ne **jamais** ouvrir au public en `demo` (les paiements y sont simulés). |
 | `DEMO_DATA` | `0` | La base vide ne se recharge plus avec les annonces fictives. |
-| `OPERATOR_NAME` | votre nom | Obligatoire dans les mentions légales (éditeur du site). |
-| `CONTACT_EMAIL` | une adresse dédiée, ex. `contact.autohub@gmail.com` | Contact public, signalements, exercice des droits sur les données. |
+| `OPERATOR_NAME` | déjà « monefan9 » par défaut ; mettre nom et prénom réels si possible | Éditeur du site (mentions légales). |
+| `CONTACT_EMAIL` | déjà `lomep610@gmail.com` par défaut | Contact public, signalements, exercice des droits sur les données. |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | fournisseur SMTP gratuit (Brevo : 300 e-mails/jour) | Mot de passe oublié, confirmations, rappels, annulations. Sans eux, aucun e-mail ne part. |
 | `CRON_SECRET` | une longue chaîne aléatoire | Protège la tâche quotidienne (rappels la veille du départ, expiration des paiements en attente), lancée par Vercel à 17 h UTC (18 h à Libreville). |
 | `PLATFORM_FEE_RATE` | `0` conseillé au début | Lancement gratuit : attire les premiers loueurs et évite de percevoir des revenus avant d'avoir un statut (voir § 4). Passer à `0.02` ensuite. |
