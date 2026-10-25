@@ -17,7 +17,8 @@
       <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg><div><b>{{ vehicle.year }}</b><span>mise en circulation</span></div></div>
     </div>
     {% if vehicle.description %}<p>{{ vehicle.description }}</p>{% endif %}
-    {% if vehicle.is_for_sale %}<div class="alert info">Ce véhicule est aussi en vente à {{ vehicle.sale_price|fcfa }}. <a href="{% url 'used-cars' %}">Voir les occasions</a></div>{% endif %}
+    {% include "public/_seller.html" %}
+    {% if vehicle.is_for_sale %}<div class="alert info">Ce véhicule est aussi en vente à {{ vehicle.sale_price|fcfa }}. <a href="{% url 'used-car-detail' vehicle.pk %}">Voir l'annonce</a></div>{% endif %}
 
     <form id="booking" method="post" novalidate>{% csrf_token %}
       {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% elif form.errors %}<div class="alert error" role="alert">Certains champs sont à corriger, ils sont signalés en rouge ci-dessous.</div>{% endif %}
@@ -41,7 +42,6 @@
           <div class="grid-2">
             {% include "_field.html" with f=form.first_name %}
             {% include "_field.html" with f=form.last_name %}
-            {% include "_field.html" with f=form.email %}
             {% include "_field.html" with f=form.phone %}
             {% include "_field.html" with f=form.birth_date %}
             {% include "_field.html" with f=form.license_issued_on %}
@@ -52,13 +52,13 @@
           <div class="field"><span class="label" id="pm-label">{{ form.payment_method.label }}</span>
             <div class="options pay-methods" role="radiogroup" aria-labelledby="pm-label">
             {% for r in form.payment_method %}
-              <label class="option">{{ r.tag }}<span class="opt-text"><span class="opt-label">{{ r.choice_label }}</span><span class="opt-desc">{% if r.data.value == "cash" %}Payé au départ, caution comprise{% elif r.data.value == "card" %}Visa, Mastercard{% else %}Validation sur votre téléphone{% endif %}</span></span></label>
+              <label class="option">{{ r.tag }}<span class="opt-text"><span class="opt-label">{{ r.choice_label }}</span><span class="opt-desc">{% if r.data.value == "cash" %}Au loueur, à la remise des clés{% elif r.data.value == "card" %}Visa, Mastercard{% else %}Validation sur votre téléphone{% endif %}</span></span></label>
             {% endfor %}
             </div>{{ form.payment_method.errors }}
           </div>
           <div class="pay-detail" data-for="airtel moov">{% include "_field.html" with f=form.mobile_number %}</div>
           <div class="pay-detail" data-for="card">{% include "_field.html" with f=form.card_number %}</div>
-          <div class="pay-detail alert info" data-for="cash">Rien à payer en ligne. Vous réglerez la location et la caution en espèces à l'agence, au moment de récupérer le véhicule.</div>
+          <div class="pay-detail alert info" data-for="cash">Rien à payer en ligne. Le jour du départ, vous remettez la location et la caution en espèces au loueur, qui vérifie votre permis et votre pièce d'identité avant de vous donner les clés.</div>
         </fieldset>
       </div>
     </form>
@@ -80,11 +80,12 @@
       <p class="alert info">Choisissez des dates valides pour voir le prix.</p>
     {% endif %}
     </div>
+    {% if not user.is_authenticated %}<p class="help">Vous créerez un compte (ou vous connecterez) avant de payer : vos informations sont conservées pour la suite.</p>{% endif %}
     <button class="btn btn-lg btn-block" type="submit" form="booking" id="pay">{% if quote %}Payer {{ quote.total_amount|fcfa }} et réserver{% else %}Réserver{% endif %}</button>
     <ul class="trust">
       <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Prix total affiché, sans frais ajoutés</li>
-      <li><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>Caution rendue au retour sans dommage</li>
-      <li><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>Airtel Money, Moov Money, carte ou espèces</li>
+      <li><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>Caution remise au loueur, rendue au retour sans dommage</li>
+      <li><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>{% if seller %}Accepté par ce loueur : {{ seller.payment_labels|join:", " }}{% else %}Airtel Money, Moov Money, carte ou espèces{% endif %}</li>
       <li><svg class="i" aria-hidden="true"><use href="#i-cal-check"/></svg>Véhicule bloqué dès la confirmation</li>
     </ul>
   </aside>
@@ -105,7 +106,7 @@
   function syncPayment() {
     const m = (form.querySelector("[name=payment_method]:checked") || {}).value;
     details.forEach((d) => { d.hidden = !d.dataset.for.split(" ").includes(m); });
-    pay.textContent = m === "cash" ? "Réserver, paiement en agence" : lastTotal ? "Payer " + eur.format(lastTotal) + " et réserver" : pay.textContent;
+    pay.textContent = m === "cash" ? "Réserver, paiement à la remise des clés" : lastTotal ? "Payer " + eur.format(lastTotal) + " et réserver" : pay.textContent;
   }
   const csrf = form.querySelector("[name=csrfmiddlewaretoken]").value;
   let timer;

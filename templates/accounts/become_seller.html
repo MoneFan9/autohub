@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Publier un véhicule{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Publier un véhicule</h1><p class="muted">Deux minutes pour créer votre profil vendeur, puis vous ajoutez vos véhicules.</p></div></div>
+<div class="detail">
+<form id="seller" method="post" novalidate>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% elif form.errors or location.errors %}<div class="alert error" role="alert">Certains champs sont à corriger, ils sont signalés en rouge ci-dessous.</div>{% endif %}
+  <div class="steps">
+    {% include "backoffice/_seller_fields.html" %}
+    <fieldset class="step"><legend>Lieu de remise des clés</legend>
+      <p class="help step-lead">Là où le client récupère et rend le véhicule. Vous pourrez en ajouter d'autres.</p>
+      <div class="grid-2">
+        {% include "_field.html" with f=location.name %}
+        {% include "_field.html" with f=location.city %}
+        {% include "_field.html" with f=location.address full=True %}
+        {% include "_field.html" with f=location.phone %}
+      </div>
+    </fieldset>
+  </div>
+  <button class="btn btn-lg" type="submit">Créer mon profil vendeur</button>
+</form>
+<aside class="card summary-card" aria-labelledby="how-sell"><h2 id="how-sell">Comment ça marche</h2>
+  <ul class="trust">
+    <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Vous fixez vos prix, vos dates et vos moyens de paiement.</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>Paiement en ligne (Airtel Money, Moov Money, carte) reversé sur votre numéro, moins {{ platform_fee_pct }} % de commission.</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-key"/></svg>Espèces : vous encaissez à la remise des clés, après vérification du permis et de la pièce d'identité.</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>La caution vous est remise au départ et rendue au retour.</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-cal-check"/></svg>Vente : les acheteurs vous contactent directement, sans commission.</li>
+  </ul>
+</aside>
+</div>
+{% endblock %}

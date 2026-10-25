@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     "django_otp",
     "django_otp.plugins.otp_totp",
     "axes",
+    "accounts",
     "vehicles",
     "customers",
     "rentals",
@@ -125,8 +126,8 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-LOGIN_URL = "backoffice:login"
-LOGIN_REDIRECT_URL = "backoffice:dashboard"
+LOGIN_URL = "accounts:login"
+LOGIN_REDIRECT_URL = "accounts:home"
 LOGOUT_REDIRECT_URL = "home"
 
 REST_FRAMEWORK = {
@@ -141,6 +142,11 @@ REST_FRAMEWORK = {
 # Marché : Gabon. Montants en francs CFA (XAF), sans centimes.
 CURRENCY_CODE = "XAF"
 CURRENCY_LABEL = "FCFA"
+
+# Commission de la plateforme sur chaque location (montant de la location, hors caution).
+PLATFORM_FEE_RATE = os.environ.get("PLATFORM_FEE_RATE", "0.02")
+# Une demande de paiement Mobile Money non validée libère le véhicule après ce délai (minutes).
+PENDING_PAYMENT_MINUTES = 15
 
 # Paiement : "fake" (simulation) tant qu'un agrégateur Mobile Money n'est pas branché.
 PAYMENT_PROVIDER = os.environ.get("PAYMENT_PROVIDER", "fake")

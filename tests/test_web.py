@@ -1,115 +1,196 @@
 from datetime import timedelta
 
-import pytest
-from django.contrib.auth import get_user_model
-
+from accounts.models import Seller
 from rentals.models import Booking
+from vehicles.models import Vehicle
+
+from .conftest import make_seller
+
+FMT = "%Y-%m-%dT%H:%M"
 
 
-def test_home_search_lists_vehicle(client, vehicle):
-    r = client.get("/")
-    assert r.status_code == 200 and "Renault Clio" in r.content.decode()
-    # Les cartes pointent vers la fiche publique, pas vers l'API.
-    assert f'href="/vehicules/{vehicle.pk}/?' in r.content.decode()
+def test_home_search_lists_vehicle_with_seller(client, vehicle):
+    html = client.get("/").content.decode()
+    assert "Renault Clio" in html and "par Loueur agent" in html
+    assert f'href="/vehicules/{vehicle.pk}/?' in html
 
 
-def test_booking_through_website(client, vehicle, gps, t0):
-    fmt = "%Y-%m-%dT%H:%M"
-    data = {
-        "start": t0.strftime(fmt), "end": (t0 + timedelta(days=2)).strftime(fmt), "extras": [gps.code],
-        "first_name": "Hugo", "last_name": "Thomas", "email": "hugo@example.com", "phone": "06",
-        "birth_date": "1988-02-02", "license_number": "FR7", "license_issued_on": "2010-02-02",
-        "payment_method": "airtel", "mobile_number": "+241 07 12 34 56",
-    }
-    r = client.post(f"/vehicules/{vehicle.pk}/", data)
-    assert r.status_code == 302, r.context["form"].errors if r.context else r
-    booking = Booking.objects.get()
-    assert booking.status == "confirmed"
-    assert client.get(r["Location"]).status_code == 200
-
-
-def test_confirmation_not_visible_to_other_sessions(client, vehicle, customer, t0):
-    from rentals import services
-
-    b = services.create_booking(vehicle=vehicle, customer=customer, start=t0, end=t0 + timedelta(days=1))
-    assert client.get(f"/reservation/{b.reference}/").status_code == 404
-
-
-def test_backoffice_requires_agency_member(client, agent):
-    assert client.get("/agence/").status_code == 302
-    client.force_login(agent)
-    assert client.get("/agence/").status_code == 200
-    assert client.get("/agence/planning/").status_code == 200
-
-
-@pytest.fixture
-def staff(agent):
-    return agent
-
-
-def test_menu_shows_agency_link_to_visitors(client, db):
-    html = client.get("/occasions/").content.decode()
-    assert 'href="/agence/connexion/"' in html and "Espace agence" in html
-
-
-def test_dashboard_redirects_to_site_login_page(client, db):
-    r = client.get("/agence/")
-    assert r.status_code == 302 and r["Location"].startswith("/agence/connexion/?next=/agence/")
-
-
-def test_staff_login_and_logout(client, staff):
-    r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123", "next": "/agence/planning/"})
-    assert r.status_code == 302 and r["Location"] == "/agence/planning/"
-    html = client.get("/agence/").content.decode()
-    assert "Déconnexion" in html and "Espace agence" not in html
-    assert client.post("/agence/deconnexion/").status_code == 302
-    assert client.get("/agence/").status_code == 302
-
-
-def test_login_defaults_to_dashboard(client, staff):
-    r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123"})
-    assert r["Location"] == "/agence/"
-
-
-def test_wrong_password_rejected(client, staff):
-    r = client.post("/agence/connexion/", {"username": "agent", "password": "nope"})
-    assert r.status_code == 200 and "Identifiant ou mot de passe incorrect" in r.content.decode()
-
-
-def test_user_outside_agency_cannot_log_in(client, db):
-    get_user_model().objects.create_user("client", password="Secret-123")
-    r = client.post("/agence/connexion/", {"username": "client", "password": "Secret-123"})
-    assert r.status_code == 200 and "pas accès" in r.content.decode()
-    assert "_auth_user_id" not in client.session
-
-
-def test_external_next_is_ignored(client, staff):
-    r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123", "next": "https://evil.example/"})
-    assert r["Location"] == "/agence/"
+def test_home_filters_by_city(client, vehicle):
+    assert "Renault Clio" not in client.get("/", {"city": "Franceville"}).content.decode()
+    assert "Renault Clio" in client.get("/", {"city": "Libreville"}).content.decode()
 
 
 def _web_booking(client, vehicle, t0, **pay):
-    fmt = "%Y-%m-%dT%H:%M"
     data = {
-        "start": t0.strftime(fmt), "end": (t0 + timedelta(days=2)).strftime(fmt),
-        "first_name": "Paul", "last_name": "Obiang", "email": f"paul{len(pay)}@example.com", "phone": "+241 07 00 00 01",
+        "start": t0.strftime(FMT), "end": (t0 + timedelta(days=2)).strftime(FMT),
+        "first_name": "Paul", "last_name": "Obiang", "phone": "+241 07 00 00 01",
         "birth_date": "1988-02-02", "license_number": "GA1", "license_issued_on": "2010-02-02", **pay,
     }
     return client.post(f"/vehicules/{vehicle.pk}/", data)
 
 
-def test_cash_booking_through_website(client, vehicle, t0):
+def test_booking_requires_an_account(client, vehicle, t0):
+    r = _web_booking(client, vehicle, t0, payment_method="card", card_number="4242 4242 4242 4242")
+    assert r.status_code == 302 and r["Location"] == f"/compte/connexion/?next=/vehicules/{vehicle.pk}/"
+    assert not Booking.objects.exists()
+
+
+def test_mobile_money_request_to_pay_flow(client, member, vehicle, gps, t0):
+    client.force_login(member)
+    r = _web_booking(client, vehicle, t0, extras=[gps.code], payment_method="airtel", mobile_number="+241 07 12 34 56")
+    booking = Booking.objects.get()
+    assert r.status_code == 302 and r["Location"] == f"/reservation/{booking.reference}/paiement/"
+    assert booking.status == "pending" and booking.customer.user == member
+    page = client.get(r["Location"]).content.decode()
+    assert "Validez le paiement sur votre téléphone" in page and "+241 07 12 34 56" in page
+    r = client.post(r["Location"])
+    booking.refresh_from_db()
+    assert booking.status == "confirmed" and booking.platform_fee > 0
+    assert r["Location"] == f"/reservation/{booking.reference}/"
+    assert "confirmée" in client.get(r["Location"]).content.decode()
+
+
+def test_mobile_money_refusal_cancels_and_frees_vehicle(client, member, vehicle, t0):
+    client.force_login(member)
+    r = _web_booking(client, vehicle, t0, payment_method="moov", mobile_number="+241 06 00 0000")
+    page = client.post(r["Location"]).content.decode()
+    assert "Paiement non abouti" in page
+    assert Booking.objects.get().status == "cancelled"
+    assert Vehicle.objects.available_between(t0, t0 + timedelta(days=2)).exists()
+
+
+def test_stale_pending_payment_expires(client, member, vehicle, t0):
+    client.force_login(member)
+    _web_booking(client, vehicle, t0, payment_method="airtel", mobile_number="+241 07 12 34 56")
+    Booking.objects.update(created_at=Booking.objects.get().created_at - timedelta(minutes=30))
+    client.get("/")
+    assert Booking.objects.get().status == "cancelled"
+
+
+def test_cash_booking_through_website(client, member, vehicle, t0):
+    client.force_login(member)
     r = _web_booking(client, vehicle, t0, payment_method="cash")
     assert r.status_code == 302
     page = client.get(r["Location"]).content.decode()
-    assert "À régler en espèces" in page
+    assert "À régler en espèces" in page and "pièce d'identité" in page
 
 
-def test_mobile_money_requires_number(client, vehicle, t0):
+def test_only_seller_methods_are_offered(client, member, t0):
+    seller = make_seller("ndong", methods=("moov", "cash"))
+    v = Vehicle.objects.create(brand="Toyota", model="Hilux", year=2023, fuel="diesel", transmission="manual",
+                               category="pickup", agency=seller.seller.locations.get(), daily_rate=50)
+    html = client.get(f"/vehicules/{v.pk}/").content.decode()
+    assert "Moov Money" in html and "Airtel Money</span>" not in html and "Carte bancaire" not in html
+    client.force_login(member)
+    r = _web_booking(client, v, t0, payment_method="card", card_number="4242 4242 4242 4242")
+    assert r.status_code == 200 and not Booking.objects.exists()
+
+
+def test_return_place_must_belong_to_same_seller(client, member, vehicle, t0):
+    other = make_seller("autre")
+    client.force_login(member)
+    r = _web_booking(client, vehicle, t0, payment_method="cash", return_agency=other.seller.locations.get().pk)
+    assert r.status_code == 200 and not Booking.objects.exists()
+
+
+def test_card_refusal_is_explained(client, member, vehicle, t0):
+    client.force_login(member)
+    r = _web_booking(client, vehicle, t0, payment_method="card", card_number="4000 0000 0000 0002")
+    assert r.status_code == 200 and "Paiement refusé" in r.content.decode()
+
+
+def test_mobile_money_requires_number(client, member, vehicle, t0):
+    client.force_login(member)
     r = _web_booking(client, vehicle, t0, payment_method="moov")
     assert r.status_code == 200 and "numéro qui recevra" in r.content.decode()
 
 
-def test_mobile_money_refusal_is_explained(client, vehicle, t0):
-    r = _web_booking(client, vehicle, t0, payment_method="airtel", mobile_number="+241 07 00 0000")
-    assert r.status_code == 200 and "Paiement refusé" in r.content.decode()
+def test_confirmation_not_visible_to_others(client, vehicle, customer, member, t0):
+    from rentals import services
+
+    b = services.create_booking(vehicle=vehicle, customer=customer, start=t0, end=t0 + timedelta(days=1))
+    assert client.get(f"/reservation/{b.reference}/").status_code == 404
+    client.force_login(member)
+    assert client.get(f"/reservation/{b.reference}/").status_code == 404
+
+
+def test_member_sees_and_cancels_own_booking(client, member, vehicle, t0):
+    client.force_login(member)
+    _web_booking(client, vehicle, t0, payment_method="cash")
+    b = Booking.objects.get()
+    assert b.reference in client.get("/compte/").content.decode()
+    client.post(f"/compte/reservations/{b.reference}/annuler/")
+    b.refresh_from_db()
+    assert b.status == "cancelled"
+
+
+def test_signup_then_become_seller_and_publish(client, db):
+    r = client.post("/compte/inscription/", {"first_name": "Awa", "last_name": "Mba", "email": "Awa@Example.com",
+                                             "password1": "Un-mot-de-passe-1", "password2": "Un-mot-de-passe-1"})
+    assert r.status_code == 302 and r["Location"] == "/compte/"
+    r = client.post("/compte/devenir-vendeur/", {
+        "s-display_name": "Awa M.", "s-kind": "individual", "s-city": "Libreville", "s-phone": "+241 07 11 22 33",
+        "s-accepts_cash": "on", "l-name": "Domicile", "l-city": "Libreville", "l-address": "Quartier Louis",
+    })
+    assert r.status_code == 302 and r["Location"] == "/espace-vendeur/vehicules/nouveau/"
+    seller = Seller.objects.get(display_name="Awa M.")
+    assert seller.payment_methods == ["cash"]
+    r = client.post("/espace-vendeur/vehicules/nouveau/", {
+        "brand": "Suzuki", "model": "Swift", "year": 2020, "category": "city", "fuel": "petrol", "transmission": "manual",
+        "seats": 5, "mileage": 40000, "plate": "GA-123-AB", "agency": seller.locations.get().pk, "status": "available",
+        "is_for_sale": "on", "sale_price": 4500000,
+    })
+    assert r.status_code == 302, r.context["form"].errors
+    v = Vehicle.objects.get(model="Swift")
+    page = client.get(f"/occasions/{v.pk}/").content.decode()
+    assert "Awa M." in page and "tel:+24107112233" in page
+
+
+def test_online_methods_need_payout_number(client, member):
+    client.force_login(member)
+    r = client.post("/compte/devenir-vendeur/", {
+        "s-display_name": "X", "s-kind": "pro", "s-city": "Oyem", "s-phone": "1", "s-accepts_airtel": "on",
+        "l-name": "Garage", "l-city": "Oyem", "l-address": "Centre",
+    })
+    assert r.status_code == 200 and "numéro sur lequel vous recevrez" in r.content.decode()
+
+
+def test_menu_for_visitors(client, db):
+    html = client.get("/occasions/").content.decode()
+    assert 'href="/compte/connexion/"' in html and "Créer un compte" in html
+
+
+def test_seller_login_goes_to_seller_space(client, agent, member):
+    r = client.post("/compte/connexion/", {"username": "agent", "password": "Secret-123"})
+    assert r["Location"] == "/espace-vendeur/"
+    client.post("/compte/deconnexion/")
+    r = client.post("/compte/connexion/", {"username": "hugo", "password": "Secret-789"})
+    assert r["Location"] == "/compte/"
+
+
+def test_external_next_is_ignored(client, agent):
+    r = client.post("/compte/connexion/", {"username": "agent", "password": "Secret-123", "next": "https://evil.example/"})
+    assert r["Location"] == "/espace-vendeur/"
+
+
+def test_wrong_password_rejected(client, agent):
+    r = client.post("/compte/connexion/", {"username": "agent", "password": "nope"})
+    assert r.status_code == 200 and "mot de passe incorrect" in r.content.decode()
+
+
+def test_old_agency_urls_redirect(client, db):
+    assert client.get("/agence/connexion/")["Location"] == "/compte/connexion/"
+
+
+def test_departure_requires_handover_checkbox(client, agent, vehicle, customer, t0):
+    from rentals import services
+
+    b = services.pay_and_confirm(services.create_booking(vehicle=vehicle, customer=customer, start=t0, end=t0 + timedelta(days=1)), services.CASH_TOKEN)
+    client.force_login(agent)
+    assert "J'ai reçu" in client.get("/espace-vendeur/").content.decode()
+    client.post(f"/espace-vendeur/reservations/{b.reference}/depart/", {"mileage": 10, "fuel_level": 100})
+    b.refresh_from_db()
+    assert b.status == "confirmed"
+    client.post(f"/espace-vendeur/reservations/{b.reference}/depart/", {"mileage": 10, "fuel_level": 100, "handover_received": "on"})
+    b.refresh_from_db()
+    assert b.status == "active" and b.balance_due == 0

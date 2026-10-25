@@ -2,9 +2,9 @@ from rest_framework import mixins, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from backoffice.roles import IsAgencyMember
+from backoffice.roles import IsSeller, scope_bookings
 from customers.models import Customer
-from customers.services import CustomerMismatch, get_or_create_customer
+from customers.services import customer_for_user
 from payments.providers import PaymentDeclined
 from vehicles.models import Agency, Vehicle
 
@@ -45,8 +45,7 @@ class QuoteSerializer(serializers.Serializer):
 class CustomerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customer
-        fields = ["first_name", "last_name", "email", "phone", "birth_date", "license_number", "license_issued_on"]
-        extra_kwargs = {"email": {"validators": []}}
+        fields = ["first_name", "last_name", "phone", "birth_date", "license_number", "license_issued_on"]
 
 
 class BookingCreateSerializer(PeriodMixin):
@@ -75,7 +74,7 @@ class InspectionSerializer(serializers.Serializer):
     mileage = serializers.IntegerField(min_value=0)
     fuel_level = serializers.IntegerField(min_value=0, max_value=100)
     damages = serializers.CharField(required=False, allow_blank=True, default="")
-    cash_received = serializers.BooleanField(required=False, default=False)
+    handover_received = serializers.BooleanField(required=False, default=False)
 
 
 class ExtraViewSet(viewsets.ReadOnlyModelViewSet):
@@ -85,7 +84,7 @@ class ExtraViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class BookingViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
-    """Création publique (paiement inclus). Lecture et actions réservées aux membres d'agence."""
+    """Création par un membre connecté (paiement inclus). Lecture et actions : le loueur, sur ses propres réservations."""
 
     queryset = Booking.objects.select_related("vehicle", "customer").prefetch_related("extras")
     serializer_class = BookingSerializer
@@ -93,9 +92,14 @@ class BookingViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.
     filterset_fields = ["status", "vehicle", "pickup_agency"]
 
     def get_permissions(self):
-        if self.action in ("create", "quote"):
+        if self.action == "quote":
             return [permissions.AllowAny()]
-        return [IsAgencyMember()]
+        if self.action == "create":
+            return [permissions.IsAuthenticated()]
+        return [IsSeller()]
+
+    def get_queryset(self):
+        return scope_bookings(super().get_queryset(), self.request.user)
 
     @action(detail=False, methods=["post"])
     def quote(self, request):
@@ -109,10 +113,11 @@ class BookingViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.
         s = BookingCreateSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         d = s.validated_data
-        try:
-            customer = get_or_create_customer(d["customer"])
-        except CustomerMismatch as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
+        customer = customer_for_user(request.user, d["customer"])
+        seller = d["vehicle"].agency.seller
+        method = d["payment_token"].split("_", 1)[0]
+        if seller and method in ("airtel", "moov", "card", "cash") and method not in seller.payment_methods:
+            return Response({"detail": "Ce loueur n'accepte pas ce moyen de paiement."}, status=status.HTTP_400_BAD_REQUEST)
         try:
             booking = services.create_booking(
                 vehicle=d["vehicle"], customer=customer, start=d["start"], end=d["end"],
@@ -148,7 +153,7 @@ class BookingViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.
 
     @action(detail=True, methods=["post"])
     def complete(self, request, reference=None):
-        return self._transition(request, services.complete_rental, drop=("cash_received",))
+        return self._transition(request, services.complete_rental, drop=("handover_received",))
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, reference=None):

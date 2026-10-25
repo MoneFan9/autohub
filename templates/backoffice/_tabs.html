@@ -1,0 +1,6 @@
+{% with current=request.resolver_match.url_name %}<nav class="tabs" aria-label="Espace vendeur">
+  <a href="{% url 'backoffice:dashboard' %}"{% if current == 'dashboard' %} aria-current="page"{% endif %}>Tableau de bord</a>
+  <a href="{% url 'backoffice:planning' %}"{% if current == 'planning' %} aria-current="page"{% endif %}>Planning</a>
+  <a href="{% url 'backoffice:vehicles' %}"{% if current == 'vehicles' or current == 'vehicle_new' or current == 'vehicle_edit' %} aria-current="page"{% endif %}>Mes véhicules</a>
+  {% if my_seller %}<a href="{% url 'backoffice:profile' %}"{% if current == 'profile' %} aria-current="page"{% endif %}>Profil et paiements</a>{% endif %}
+</nav>{% endwith %}

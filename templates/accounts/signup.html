@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Créer un compte{% endblock %}
+{% block content %}
+<form class="card auth" method="post" novalidate>{% csrf_token %}
+  <div><h1>Créer un compte</h1><p class="muted">Gratuit. Réservez une voiture, ou publiez les vôtres à louer ou à vendre.</p></div>
+  {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% elif form.errors %}<div class="alert error" role="alert">Certains champs sont à corriger.</div>{% endif %}
+  <div class="grid-2">
+    {% include "_field.html" with f=form.first_name %}
+    {% include "_field.html" with f=form.last_name %}
+    {% include "_field.html" with f=form.email full=True %}
+    {% include "_field.html" with f=form.password1 full=True %}
+    {% include "_field.html" with f=form.password2 full=True %}
+  </div>
+  <input type="hidden" name="next" value="{{ next }}">
+  <button class="btn btn-lg btn-block" type="submit">Créer mon compte</button>
+  <p class="muted small center">Déjà inscrit ? <a href="{% url 'accounts:login' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Se connecter</a></p>
+</form>
+{% endblock %}

@@ -9,6 +9,7 @@ class Payment(models.Model):
         REFUND = "refund", "Remboursement"
 
     class Status(models.TextChoices):
+        PENDING = "pending", "En attente de validation"
         SUCCEEDED = "succeeded", "Réussi"
         FAILED = "failed", "Échoué"
 
@@ -25,6 +26,7 @@ class Payment(models.Model):
     provider = models.CharField(max_length=20)
     method = models.CharField("moyen", max_length=10, choices=Method.choices, blank=True)
     provider_ref = models.CharField(max_length=100, blank=True)
+    payer_number = models.CharField("numéro payeur", max_length=30, blank=True)
     error = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

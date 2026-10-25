@@ -4,9 +4,10 @@ from django.db import models
 
 
 class Customer(models.Model):
+    user = models.OneToOneField("auth.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="customer")
     first_name = models.CharField("prénom", max_length=80)
     last_name = models.CharField("nom", max_length=80)
-    email = models.EmailField(unique=True)
+    email = models.EmailField(db_index=True)
     phone = models.CharField("téléphone", max_length=30)
     birth_date = models.DateField("date de naissance")
     license_number = models.CharField("n° de permis", max_length=30)

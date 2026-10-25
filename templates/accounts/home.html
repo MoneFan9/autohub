@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% load cars %}
+{% block title %}Mon compte{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Bonjour {{ user.first_name|default:user.username }}</h1><p class="muted">{{ user.email|default:user.username }}</p></div>
+  <div class="head-actions"><a class="btn btn-ghost" href="{% url 'accounts:password' %}">Mot de passe</a>{% if is_owner %}<a class="btn btn-ghost" href="{% url 'accounts:security' %}"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>Double authentification</a>{% endif %}</div></div>
+
+{% if is_seller %}
+<div class="alert info"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg><div>Vous louez ou vendez en tant que <b>{{ my_seller.display_name|default:"plateforme" }}</b>. <a href="{% url 'backoffice:dashboard' %}">Ouvrir l'espace vendeur</a></div></div>
+{% else %}
+<section class="card panel cta-panel" aria-labelledby="sell-title"><div><h2 id="sell-title">Vous avez un véhicule ?</h2><p class="muted">Louez-le ou vendez-le sur AutoHub. Vous fixez vos prix et vos moyens de paiement ; AutoHub prélève {{ platform_fee_pct }} % sur chaque location, rien sur les ventes.</p></div><a class="btn" href="{% url 'accounts:become_seller' %}">Publier un véhicule</a></section>
+{% endif %}
+
+<section class="card panel panel-spaced" aria-labelledby="bk-title"><h2 id="bk-title">Mes réservations</h2>
+{% if bookings %}
+<ul class="rows">{% for b in bookings %}
+  <li><div class="row-head">
+    <div><b>{{ b.vehicle.title }}</b> · <span class="num">{{ b.reference }}</span>
+      <div class="muted small">{{ b.start|date:"D j M, H:i" }} → {{ b.end|date:"D j M, H:i" }} · {{ b.pickup_agency.name }}, {{ b.pickup_agency.city }}</div>
+      <div class="muted small">Loueur : {{ b.vehicle.agency.seller.display_name|default:"AutoHub" }}{% if b.vehicle.agency.seller.phone %} · <a href="tel:{{ b.vehicle.agency.seller.phone|cut:' ' }}">{{ b.vehicle.agency.seller.phone }}</a>{% endif %}</div>
+    </div>
+    <div class="row-side"><span class="badge b-{{ b.status }}">{{ b.get_status_display }}</span><span class="num">{{ b.total_amount|fcfa }}</span></div>
+  </div>
+  <div class="row-actions">
+    {% if b.status == 'pending' %}<a class="btn btn-sm" href="{% url 'booking-payment' b.reference %}">Finaliser le paiement</a>{% endif %}
+    {% if b.status == 'confirmed' %}<a class="btn btn-sm btn-ghost" href="{% url 'booking-confirmation' b.reference %}">Voir le récapitulatif</a>{% endif %}
+    {% if b.status == 'pending' or b.status == 'confirmed' %}{% if b.start > now %}<form method="post" action="{% url 'accounts:cancel' b.reference %}" onsubmit="return confirm('Annuler la réservation {{ b.reference }} ?')">{% csrf_token %}<button class="btn btn-sm btn-danger" type="submit">Annuler</button></form>{% endif %}{% endif %}
+  </div></li>
+{% endfor %}</ul>
+{% else %}
+<div class="empty"><h2>Aucune réservation pour l'instant</h2><p>Choisissez vos dates : seuls les véhicules libres s'affichent, avec le prix total.</p><a class="btn" href="{% url 'home' %}">Trouver une voiture</a></div>
+{% endif %}
+</section>
+{% endblock %}

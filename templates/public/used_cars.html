@@ -1,15 +1,15 @@
 {% extends "base.html" %}{% load humanize cars %}
 {% block title %}Véhicules d'occasion{% endblock %}
-{% block hero %}<section class="hero"><div class="wrap"><h1>Véhicules d'occasion</h1><p>Ils viennent de notre flotte de location : kilométrage relevé à chaque retour et entretien suivi en agence.</p></div></section>{% endblock %}
+{% block hero %}<section class="hero"><div class="wrap"><h1>Véhicules d'occasion</h1><p>Annonces publiées par des particuliers et des professionnels. Vous contactez directement le vendeur, AutoHub ne prend aucune commission sur les ventes.</p></div></section>{% endblock %}
 {% block content %}
 <div class="toolbar"><h2>{{ vehicles|length }} véhicule{{ vehicles|length|pluralize }} en vente</h2><span class="muted small">trié par prix</span></div>
 {% if vehicles %}
 <div class="cards">
 {% for v in vehicles %}
-  <article class="card vehicle-card">
+  <a class="card vehicle-card" href="{% url 'used-car-detail' v.pk %}">
     {% include "_car.html" with badge=True %}
     <div class="body">
-      <div class="meta"><span>{{ v.agency.city }}</span><span>{{ v.year }}</span></div>
+      <div class="meta"><span class="where"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg>{{ v.agency.city }}</span><span>{{ v.year }}</span></div>
       <h3>{{ v.title }}</h3>
       <ul class="specs">
         <li><svg class="i" aria-hidden="true"><use href="#i-road"/></svg>{{ v.mileage|intcomma }} km</li>
@@ -18,13 +18,13 @@
       </ul>
       <div class="price-row">
         <div class="price-total num">{{ v.sale_price|fcfa }}</div>
-        <a class="btn btn-ghost btn-sm" href="tel:{{ v.agency.phone|cut:' ' }}"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>Appeler l'agence</a>
+        <span class="price-sub">{{ v.agency.seller.display_name|default:"AutoHub" }}<br>{{ v.agency.seller.get_kind_display|default:"" }}</span>
       </div>
     </div>
-  </article>
+  </a>
 {% endfor %}
 </div>
 {% else %}
-<div class="empty"><h2>Aucun véhicule en vente pour le moment</h2><p>Revenez bientôt, la flotte est renouvelée régulièrement.</p></div>
+<div class="empty"><h2>Aucun véhicule en vente pour le moment</h2><p>Revenez bientôt, ou publiez le vôtre.</p><a class="btn btn-ghost" href="{% url 'accounts:become_seller' %}">Vendre mon véhicule</a></div>
 {% endif %}
 {% endblock %}

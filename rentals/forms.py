@@ -37,21 +37,25 @@ class PeriodForm(forms.Form):
 
 
 class SearchForm(PeriodForm):
-    agency = forms.ModelChoiceField(Agency.objects.all(), label="Agence", required=False, empty_label="Toutes les agences")
+    city = forms.ChoiceField(label="Ville", required=False)
     category = forms.ChoiceField(label="Catégorie", required=False, choices=[("", "Toutes")] + Vehicle.Category.choices)
     fuel = forms.ChoiceField(label="Énergie", required=False, choices=[("", "Toutes")] + Vehicle.Fuel.choices)
     transmission = forms.ChoiceField(label="Boîte", required=False, choices=[("", "Toutes")] + Vehicle.Transmission.choices)
     max_rate = forms.DecimalField(label="Budget max / jour", required=False, min_value=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        cities = Agency.objects.filter(vehicles__isnull=False).values_list("city", flat=True).distinct().order_by("city")
+        self.fields["city"].choices = [("", "Toutes les villes")] + [(c, c) for c in cities]
 
 
 class BookingForm(PeriodForm):
     extras = forms.ModelMultipleChoiceField(
         Extra.objects.all(), required=False, widget=forms.CheckboxSelectMultiple, label="Options", to_field_name="code",
     )
-    return_agency = forms.ModelChoiceField(Agency.objects.all(), label="Agence de retour", required=False, empty_label="Même agence qu'au départ")
+    return_agency = forms.ModelChoiceField(Agency.objects.all(), label="Lieu de retour", required=False, empty_label="Même lieu qu'au départ")
     first_name = forms.CharField(label="Prénom", max_length=80, widget=forms.TextInput(attrs={"autocomplete": "given-name"}))
     last_name = forms.CharField(label="Nom", max_length=80, widget=forms.TextInput(attrs={"autocomplete": "family-name"}))
-    email = forms.EmailField(label="E-mail", widget=forms.EmailInput(attrs={"autocomplete": "email"}))
     phone = forms.CharField(
         label="Téléphone", max_length=30,
         widget=forms.TextInput(attrs={"autocomplete": "tel", "inputmode": "tel", "placeholder": "+241 …"}),
@@ -61,20 +65,30 @@ class BookingForm(PeriodForm):
     license_issued_on = forms.DateField(label="Permis obtenu le", widget=forms.DateInput(attrs={"type": "date"}))
     payment_method = forms.ChoiceField(
         label="Moyen de paiement", widget=forms.RadioSelect, initial="airtel",
-        choices=[("airtel", "Airtel Money"), ("moov", "Moov Money"), ("card", "Carte bancaire"), ("cash", "Espèces, en agence")],
+        choices=[("airtel", "Airtel Money"), ("moov", "Moov Money"), ("card", "Carte bancaire"), ("cash", "Espèces, à la remise des clés")],
     )
     mobile_number = forms.CharField(
         label="Numéro Mobile Money", max_length=20, required=False,
         widget=forms.TextInput(attrs={"autocomplete": "tel", "inputmode": "tel", "placeholder": "+241 …"}),
-        help_text="Vous validerez le paiement sur votre téléphone. Simulation : un numéro finissant par 0000 simule un refus.",
+        help_text="Vous recevrez une demande de paiement à valider avec votre code secret. Exemple : un numéro finissant par 0000 simule un refus.",
     )
     card_number = forms.CharField(
         label="Numéro de carte", max_length=19, required=False,
         widget=forms.TextInput(attrs={"autocomplete": "cc-number", "inputmode": "numeric"}),
-        help_text="Simulation : 4000 0000 0000 0002 simule un refus.",
+        help_text="Exemple : 4000 0000 0000 0002 simule un refus.",
     )
 
-    CUSTOMER_FIELDS = ["first_name", "last_name", "email", "phone", "birth_date", "license_number", "license_issued_on"]
+    CUSTOMER_FIELDS = ["first_name", "last_name", "phone", "birth_date", "license_number", "license_issued_on"]
+    METHOD_LABELS = dict(payment_method.choices)
+
+    def __init__(self, *args, methods=None, seller=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if seller is not None:
+            self.fields["return_agency"].queryset = seller.locations.all()
+        if methods:
+            # Seuls les moyens acceptés par ce loueur sont proposés.
+            self.fields["payment_method"].choices = [(m, self.METHOD_LABELS[m]) for m in ("airtel", "moov", "card", "cash") if m in methods]
+            self.fields["payment_method"].initial = self.fields["payment_method"].choices[0][0]
 
     def customer_data(self):
         return {f: self.cleaned_data[f] for f in self.CUSTOMER_FIELDS}
@@ -108,7 +122,7 @@ class InspectionForm(forms.Form):
         kwargs.setdefault("label_suffix", "")
         super().__init__(*args, **kwargs)
 
-    cash_received = forms.BooleanField(label="Espèces reçues (location + caution)", required=False)
+    handover_received = forms.BooleanField(label="Caution reçue (et paiement en espèces le cas échéant)", required=False)
 
     mileage = forms.IntegerField(label="Km", min_value=0)
     fuel_level = forms.IntegerField(label="Carburant %", min_value=0, max_value=100, initial=100)

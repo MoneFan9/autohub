@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Profil et paiements{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Profil et paiements</h1><p class="muted">Ce que voient vos clients, et comment ils vous paient.</p></div></div>
+{% include "backoffice/_tabs.html" %}
+<div class="detail">
+<form method="post" novalidate>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="steps">{% include "backoffice/_seller_fields.html" %}</div>
+  <button class="btn btn-lg" type="submit" name="save_profile" value="1">Enregistrer le profil</button>
+</form>
+<aside class="card summary-card" aria-labelledby="loc-title"><h2 id="loc-title">Lieux de remise</h2>
+  <ul class="rows">{% for l in locations %}<li><b>{{ l.name }}</b><div class="muted small">{{ l.address }}, {{ l.city }}{% if l.phone %} · {{ l.phone }}{% endif %}</div></li>{% endfor %}</ul>
+  <details class="act"{% if location.errors %} open{% endif %}><summary class="btn btn-sm btn-ghost">Ajouter un lieu</summary>
+    <form method="post" novalidate>{% csrf_token %}
+      {% include "_field.html" with f=location.name %}{% include "_field.html" with f=location.city %}
+      {% include "_field.html" with f=location.address %}{% include "_field.html" with f=location.phone %}
+      <button class="btn btn-sm" type="submit" name="add_location" value="1">Ajouter ce lieu</button>
+    </form>
+  </details>
+</aside>
+</div>
+{% endblock %}

@@ -6,13 +6,17 @@ vin_validator = RegexValidator(r"^[A-HJ-NPR-Z0-9]{17}$", "VIN invalide (17 carac
 
 
 class Agency(models.Model):
+    """Lieu de remise des clés d'un vendeur (agence, domicile, parking…)."""
+
+    seller = models.ForeignKey("accounts.Seller", on_delete=models.CASCADE, related_name="locations", null=True, blank=True, verbose_name="vendeur")
     name = models.CharField("nom", max_length=100)
     city = models.CharField("ville", max_length=100)
     address = models.CharField("adresse", max_length=255)
     phone = models.CharField("téléphone", max_length=30, blank=True)
 
     class Meta:
-        verbose_name = "agence"
+        verbose_name = "lieu de remise"
+        verbose_name_plural = "lieux de remise"
         ordering = ["city", "name"]
 
     def __str__(self):
@@ -60,7 +64,7 @@ class Vehicle(models.Model):
         MAINTENANCE = "maintenance", "Atelier"
         SOLD = "sold", "Vendu"
 
-    vin = models.CharField("VIN", max_length=17, unique=True, validators=[vin_validator])
+    vin = models.CharField("VIN", max_length=17, unique=True, null=True, blank=True, validators=[vin_validator])
     plate = models.CharField("immatriculation", max_length=12, unique=True)
     brand = models.CharField("marque", max_length=50)
     model = models.CharField("modèle", max_length=80)
@@ -105,6 +109,10 @@ class Vehicle(models.Model):
 
     def __str__(self):
         return f"{self.brand} {self.model} ({self.plate})"
+
+    @property
+    def seller(self):
+        return self.agency.seller
 
     @property
     def title(self):

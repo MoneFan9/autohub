@@ -50,7 +50,7 @@ img, svg { display: block; }
 .nav .nav-cta { border: 1px solid var(--line-2); color: var(--ink); margin-left: var(--s-2); }
 @media (max-width: 760px) {
   .site-header .wrap { flex-wrap: wrap; gap: 0; padding-top: var(--s-2); }
-  .nav { width: 100%; margin: 0 calc(-1 * var(--s-4)); padding: var(--s-1) var(--s-4) var(--s-2); overflow-x: auto; }
+  .nav { width: calc(100% + 2 * var(--s-4)); margin: 0 calc(-1 * var(--s-4)); padding: var(--s-1) var(--s-4) var(--s-2); overflow-x: auto; }
   .nav a, .nav button { white-space: nowrap; min-height: 44px; }
 }
 
@@ -259,7 +259,7 @@ a.vehicle-card:hover { text-decoration: none; box-shadow: var(--shadow-2); borde
 @media (max-width: 560px) { .detail .car { height: 190px; } }
 @media (max-width: 760px) {
   .nav { gap: 0; }
-  .nav a, .nav button { padding: 0 10px; font-size: 14px; }
+  .nav a, .nav button { padding: 0 8px; font-size: 14px; }
   .nav .nav-cta { margin-left: auto; }
 }
 .paybar { display: none; }
@@ -292,3 +292,33 @@ a.vehicle-card:hover { text-decoration: none; box-shadow: var(--shadow-2); borde
 .pay-detail { margin-top: var(--s-2); }
 .cash-check { grid-column: 1 / -1; display: flex; gap: var(--s-2); align-items: center; font-size: 14px; font-weight: 600; color: var(--warn); }
 .cash-check input { width: 18px; height: 18px; min-height: 0; accent-color: var(--warn); }
+/* V2 place de marché */
+.center { text-align: center; }
+.spaced { margin-top: var(--s-4); }
+.h3 { font-size: 17px; font-weight: 600; }
+.tabs { display: flex; gap: var(--s-1); overflow-x: auto; border-bottom: 1px solid var(--line); margin: 0 0 var(--s-5); }
+.tabs a { padding: var(--s-3) var(--s-4); color: var(--ink-2); font-weight: 600; white-space: nowrap; border-bottom: 2px solid transparent; min-height: 44px; display: flex; align-items: center; }
+.tabs a:hover { color: var(--ink); text-decoration: none; }
+.tabs a[aria-current="page"] { color: var(--brand); border-bottom-color: var(--brand); }
+.row-side { display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-1); }
+.row-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-2); }
+.row-actions:empty { display: none; }
+.cta-panel { display: flex; justify-content: space-between; align-items: center; gap: var(--s-4); margin: var(--s-6) 0 0; }
+.cta-panel p { margin: var(--s-1) 0 0; }
+@media (max-width: 600px) { .cta-panel { flex-direction: column; align-items: stretch; } }
+.seller-card { display: flex; gap: var(--s-3); padding: var(--s-4); margin: var(--s-4) 0; box-shadow: none; background: var(--surface-2); }
+.seller-avatar { flex: none; width: 44px; height: 44px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); display: grid; place-items: center; font-weight: 700; font-size: 18px; }
+.seller-body p { margin: var(--s-1) 0 0; }
+.seller-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
+.options.inline { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+label.check { display: flex; gap: var(--s-2); align-items: center; font-weight: 600; min-height: 44px; }
+label.check input, .option input[type="checkbox"] { width: 18px; height: 18px; min-height: 0; accent-color: var(--brand); }
+.form-narrow { max-width: 760px; }
+.form-narrow > .btn, .detail form > .btn { margin-top: var(--s-5); }
+.money-line { margin: var(--s-3) 0 0; }
+.vehicle-card .by { margin: calc(-1 * var(--s-1)) 0 0; }
+.price-total.big { font-size: 28px; font-weight: 800; }
+.confirm .check.pending { background: var(--warn-soft); color: var(--warn); }
+.confirm .check.failed { background: var(--err-soft); color: var(--err); }
+.confirm form { margin: var(--s-4) 0; }
+@media (max-width: 760px) { .nav a.lg-only { display: none; } }

@@ -23,8 +23,8 @@ class PaymentInline(admin.TabularInline):
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    list_display = ["reference", "vehicle", "customer", "period", "status", "total_amount"]
-    list_filter = ["status", "pickup_agency"]
+    list_display = ["reference", "vehicle", "customer", "period", "status", "payment_method", "total_amount", "platform_fee"]
+    list_filter = ["status", "payment_method", "vehicle__agency__seller"]
     search_fields = ["reference", "customer__last_name", "customer__email", "vehicle__plate"]
     readonly_fields = ["reference", "days", "base_amount", "extras_amount", "discount_amount", "total_amount", "deposit_amount"]
     inlines = [InspectionInline, PaymentInline]

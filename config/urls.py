@@ -2,6 +2,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 from rest_framework.routers import DefaultRouter
 
 from rentals.api import BookingViewSet, ExtraViewSet
@@ -26,7 +27,15 @@ urlpatterns = [
     path("vehicules/<int:pk>/", views.vehicle_detail, name="vehicle-detail"),
     path("reservation/<str:reference>/", views.booking_confirmation, name="booking-confirmation"),
     path("occasions/", views.used_cars, name="used-cars"),
-    path("agence/", include("backoffice.urls")),
+    path("occasions/<int:pk>/", views.used_car_detail, name="used-car-detail"),
+    path("reservation/<str:reference>/paiement/", views.booking_payment, name="booking-payment"),
+    path("compte/", include("accounts.urls")),
+    path("espace-vendeur/", include("backoffice.urls")),
+    # Anciennes adresses de l'espace agence (V1)
+    path("agence/", RedirectView.as_view(pattern_name="backoffice:dashboard")),
+    path("agence/connexion/", RedirectView.as_view(pattern_name="accounts:login", query_string=True)),
+    path("agence/securite/", RedirectView.as_view(pattern_name="accounts:security")),
+    path("agence/mot-de-passe/", RedirectView.as_view(pattern_name="accounts:password")),
     path("api/", include((router.urls, "api"))),
     path("admin/", admin.site.urls),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
