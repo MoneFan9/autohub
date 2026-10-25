@@ -20,21 +20,21 @@ from vehicles.models import Agency, Vehicle
 VIN_CHARS = "ABCDEFGHJKLMNPRSTUVWXYZ0123456789"
 
 FLEET = [
-    # marque, modèle, catégorie, énergie, boîte, places, €/jour, prix vente
-    ("Renault", "Clio V", "city", "petrol", "manual", 5, 39, None),
-    ("Peugeot", "208", "city", "petrol", "auto", 5, 45, 14900),
-    ("Fiat", "500e", "city", "electric", "auto", 4, 49, None),
-    ("Toyota", "Yaris Hybrid", "city", "hybrid", "auto", 5, 47, None),
-    ("Volkswagen", "Golf 8", "sedan", "diesel", "auto", 5, 59, 21500),
-    ("Tesla", "Model 3", "sedan", "electric", "auto", 5, 89, None),
-    ("Skoda", "Octavia Combi", "sedan", "diesel", "manual", 5, 55, None),
-    ("Peugeot", "3008", "suv", "hybrid", "auto", 5, 79, 27900),
-    ("Dacia", "Duster", "suv", "petrol", "manual", 5, 49, None),
-    ("Kia", "EV6", "suv", "electric", "auto", 5, 99, None),
-    ("BMW", "Série 5", "premium", "hybrid", "auto", 5, 139, None),
-    ("Mercedes", "Classe C", "premium", "diesel", "auto", 5, 129, 38900),
-    ("Renault", "Trafic", "van", "diesel", "manual", 3, 85, None),
-    ("Citroën", "Berlingo", "van", "diesel", "manual", 5, 65, None),
+    # marque, modèle, catégorie, énergie, boîte, places, FCFA/jour, prix de vente FCFA
+    ("Hyundai", "i10", "city", "petrol", "manual", 5, 20000, None),
+    ("Suzuki", "Swift", "city", "petrol", "manual", 5, 22000, 6500000),
+    ("Toyota", "Yaris", "city", "petrol", "auto", 5, 25000, None),
+    ("Toyota", "Corolla", "sedan", "petrol", "auto", 5, 35000, 12500000),
+    ("Hyundai", "Elantra", "sedan", "petrol", "auto", 5, 35000, None),
+    ("Hyundai", "Tucson", "suv", "diesel", "auto", 5, 50000, 16900000),
+    ("Toyota", "RAV4", "suv", "petrol", "auto", 5, 55000, None),
+    ("Mitsubishi", "Pajero", "suv", "diesel", "manual", 7, 75000, None),
+    ("Toyota", "Fortuner", "suv", "diesel", "auto", 7, 80000, None),
+    ("Toyota", "Land Cruiser Prado", "premium", "diesel", "auto", 7, 120000, 32000000),
+    ("Toyota", "Land Cruiser V8", "premium", "diesel", "auto", 7, 150000, None),
+    ("Nissan", "Navara", "pickup", "diesel", "manual", 5, 65000, None),
+    ("Toyota", "Hilux", "pickup", "diesel", "manual", 5, 70000, None),
+    ("Toyota", "Hiace", "van", "diesel", "manual", 14, 90000, None),
 ]
 
 
@@ -44,14 +44,24 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **opts):
         random.seed(7)
+        # Agences et numéros de démonstration.
         agencies = [
-            Agency.objects.get_or_create(name="AutoHub Gare de Lyon", defaults=dict(city="Paris", address="20 bd Diderot, 75012", phone="01 40 00 00 01"))[0],
-            Agency.objects.get_or_create(name="AutoHub Part-Dieu", defaults=dict(city="Lyon", address="5 pl. Charles Béraudier, 69003", phone="04 72 00 00 02"))[0],
-            Agency.objects.get_or_create(name="AutoHub Saint-Charles", defaults=dict(city="Marseille", address="Square Narvik, 13001", phone="04 91 00 00 03"))[0],
+            Agency.objects.get_or_create(name="AutoHub Aéroport Léon-Mba", defaults=dict(city="Libreville", address="Aéroport international Léon-Mba", phone="+241 01 00 00 01"))[0],
+            Agency.objects.get_or_create(name="AutoHub Centre-ville", defaults=dict(city="Libreville", address="Boulevard Triomphal", phone="+241 01 00 00 02"))[0],
+            Agency.objects.get_or_create(name="AutoHub Port-Gentil", defaults=dict(city="Port-Gentil", address="Centre-ville", phone="+241 01 00 00 03"))[0],
+            Agency.objects.get_or_create(name="AutoHub Franceville", defaults=dict(city="Franceville", address="Centre-ville", phone="+241 01 00 00 04"))[0],
         ]
-        for code, label, price, cap in [("gps", "GPS", "5", "35"), ("child-seat", "Siège enfant", "8", "60"),
-                                        ("extra-driver", "Conducteur additionnel", "10", "80"), ("zero-franchise", "Rachat de franchise", "15", None)]:
-            Extra.objects.get_or_create(code=code, defaults=dict(label=label, price_per_day=Decimal(price), max_price=cap and Decimal(cap)))
+        # (code, libellé, FCFA/jour, plafond, description) ; plafond = prix/jour : forfait unique.
+        for code, label, price, cap, desc in [
+            ("chauffeur", "Avec chauffeur", 25000, None, "Chauffeur professionnel, jusqu'à 10 h par jour"),
+            ("province", "Circulation en province", 10000, None, "Pour sortir de la ville de l'agence"),
+            ("airport", "Livraison à l'aéroport", 10000, 10000, "Véhicule remis et repris à l'aéroport"),
+            ("zero-franchise", "Rachat de franchise", 8000, None, "Réduit la franchise en cas de dommage"),
+            ("extra-driver", "Conducteur additionnel", 5000, 40000, ""),
+            ("child-seat", "Siège enfant", 3000, 30000, ""),
+        ]:
+            Extra.objects.get_or_create(code=code, defaults=dict(
+                label=label, price_per_day=Decimal(price), max_price=cap and Decimal(cap), description=desc))
 
         vehicles = []
         for i, (brand, model, cat, fuel, box, seats, rate, sale) in enumerate(FLEET):
@@ -60,10 +70,10 @@ class Command(BaseCommand):
                 defaults=dict(
                     vin="".join(random.choice(VIN_CHARS) for _ in range(17)), brand=brand, model=model,
                     year=random.choice([2022, 2023, 2024, 2025]), mileage=random.randint(8000, 62000),
-                    fuel=fuel, transmission=box, category=cat, seats=seats, agency=agencies[i % 3],
+                    fuel=fuel, transmission=box, category=cat, seats=seats, agency=agencies[i % len(agencies)],
                     daily_rate=Decimal(rate), is_for_sale=sale is not None, sale_price=sale and Decimal(sale),
-                    purchase_price=Decimal(rate * 330), color=random.choice(["Gris", "Noir", "Blanc", "Bleu"]),
-                    description=f"{brand} {model}, entretien constructeur à jour, Bluetooth, régulateur, climatisation.",
+                    purchase_price=Decimal(rate * 330), color=random.choice(["Blanc", "Blanc", "Gris", "Noir"]),
+                    description=f"{brand} {model}, climatisation, entretien suivi en agence.",
                 ),
             )
             vehicles.append(v)
@@ -72,10 +82,10 @@ class Command(BaseCommand):
             self.stdout.write("Réservations déjà présentes, rien d'autre à faire.")
             return
 
-        names = [("Camille", "Martin"), ("Lucas", "Bernard"), ("Inès", "Dubois"), ("Hugo", "Thomas"), ("Léa", "Robert"),
-                 ("Nathan", "Petit"), ("Chloé", "Richard"), ("Yanis", "Durand")]
+        names = [("Jean", "Mba Ondo"), ("Christelle", "Nzé Mintsa"), ("Paul", "Obiang"), ("Grâce", "Moussavou"),
+                 ("Hervé", "Boussougou"), ("Sylvie", "Ndong"), ("Arnaud", "Mabika"), ("Nadège", "Ella")]
         customers = [Customer.objects.create(
-            first_name=f, last_name=l, email=f"{f.lower()}.{l.lower()}@example.com", phone=f"06 00 00 00 {i:02d}",
+            first_name=f, last_name=l, email=f"{f.lower()}.{l.lower().replace(' ', '')}@example.com", phone=f"+241 07 00 00 {i:02d}",
             birth_date=date(1985 + i, 3, 10), license_number=f"FR{900000 + i}", license_issued_on=date(2008 + i, 6, 1),
         ) for i, (f, l) in enumerate(names)]
 
@@ -100,9 +110,9 @@ class Command(BaseCommand):
                 vehicle=vehicles[vi], customer=customers[ci], pickup_agency=vehicles[vi].agency, return_agency=vehicles[vi].agency,
                 period=(now + timedelta(days=offset), now + timedelta(days=offset + length)), status=Booking.Status.CONFIRMED,
                 days=length, base_amount=vehicles[vi].daily_rate * length, extras_amount=0, discount_amount=0,
-                total_amount=vehicles[vi].daily_rate * length, deposit_amount=Decimal("300"),
+                total_amount=vehicles[vi].daily_rate * length, deposit_amount=Decimal("100000"),
             )
-            charge_booking(b, "tok_visa")
+            charge_booking(b, random.choice(["airtel_ok", "moov_ok", "card_ok"]))
             b.payments.update(created_at=now + timedelta(days=offset))
             services.start_rental(b, mileage=vehicles[vi].mileage, fuel_level=100, user=staff)
             services.complete_rental(b, mileage=vehicles[vi].mileage + 120 * length, fuel_level=80, user=staff)
@@ -111,7 +121,7 @@ class Command(BaseCommand):
 
     def _book(self, vehicle, customer, start, end, extras):
         b = services.create_booking(vehicle=vehicle, customer=customer, start=start, end=end, extras=extras)
-        return services.pay_and_confirm(b, "tok_visa")
+        return services.pay_and_confirm(b, random.choice(["airtel_ok", "airtel_ok", "moov_ok", "card_ok"]))
 
     def _staff(self):
         User = get_user_model()

@@ -57,7 +57,8 @@ def vehicle_detail(request, pk):
                 services.pay_and_confirm(booking, form.payment_token())
             except PaymentDeclined as exc:
                 services.cancel_booking(booking)
-                form.add_error("card_number", str(exc))
+                field = "card_number" if form.cleaned_data["payment_method"] == "card" else "mobile_number"
+                form.add_error(field, f"{exc} Vérifiez le numéro ou choisissez un autre moyen de paiement.")
             else:
                 request.session[SESSION_BOOKINGS] = request.session.get(SESSION_BOOKINGS, []) + [booking.reference]
                 messages.success(request, "Réservation confirmée.")

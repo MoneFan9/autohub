@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load cars %}
 {% block title %}Réservation {{ booking.reference }}{% endblock %}
 {% block content %}
 <section class="card confirm" aria-labelledby="ok-title">
@@ -10,10 +10,15 @@
     <tr><td>Départ</td><td><div class="when"><b>{{ booking.start|date:"l j F, H:i" }}</b><span class="muted">{{ booking.pickup_agency.name }}</span></div></td></tr>
     <tr><td>Retour</td><td><div class="when"><b>{{ booking.end|date:"l j F, H:i" }}</b><span class="muted">{{ booking.return_agency.name }}</span></div></td></tr>
     {% if booking.extras.all %}<tr><td>Options</td><td>{{ booking.extras.all|join:", " }}</td></tr>{% endif %}
-    <tr class="total"><td>Payé</td><td>{{ booking.total_amount }} €</td></tr>
-    <tr class="deposit"><td>Caution (empreinte)</td><td>{{ booking.deposit_amount }} €</td></tr>
+    {% if booking.balance_due %}
+    <tr class="total"><td>À régler en espèces au départ</td><td>{{ booking.balance_due|fcfa }}</td></tr>
+    <tr class="deposit"><td>Caution, en espèces également</td><td>{{ booking.deposit_amount|fcfa }}</td></tr>
+    {% else %}
+    <tr class="total"><td>Payé</td><td>{{ booking.total_amount|fcfa }}</td></tr>
+    <tr class="deposit"><td>Caution</td><td>{{ booking.deposit_amount|fcfa }}</td></tr>
+    {% endif %}
   </table>
-  <div class="alert info">Le jour du départ, présentez-vous à l'agence {{ booking.pickup_agency.name }} ({{ booking.pickup_agency.address }}) avec votre permis.</div>
+  <div class="alert info">Le jour du départ, présentez-vous à l'agence {{ booking.pickup_agency.name }} ({{ booking.pickup_agency.address }}) avec votre permis{% if booking.balance_due %} et {{ booking.balance_due|add:booking.deposit_amount|fcfa }} en espèces{% endif %}.</div>
   <a class="btn btn-ghost" href="{% url 'home' %}">Retour à l'accueil</a>
 </section>
 {% endblock %}

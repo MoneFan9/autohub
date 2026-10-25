@@ -19,7 +19,7 @@ def test_booking_through_website(client, vehicle, gps, t0):
         "start": t0.strftime(fmt), "end": (t0 + timedelta(days=2)).strftime(fmt), "extras": [gps.code],
         "first_name": "Hugo", "last_name": "Thomas", "email": "hugo@example.com", "phone": "06",
         "birth_date": "1988-02-02", "license_number": "FR7", "license_issued_on": "2010-02-02",
-        "card_number": "4242 4242 4242 4242",
+        "payment_method": "airtel", "mobile_number": "+241 07 12 34 56",
     }
     r = client.post(f"/vehicules/{vehicle.pk}/", data)
     assert r.status_code == 302, r.context["form"].errors if r.context else r
@@ -86,3 +86,30 @@ def test_user_outside_agency_cannot_log_in(client, db):
 def test_external_next_is_ignored(client, staff):
     r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123", "next": "https://evil.example/"})
     assert r["Location"] == "/agence/"
+
+
+def _web_booking(client, vehicle, t0, **pay):
+    fmt = "%Y-%m-%dT%H:%M"
+    data = {
+        "start": t0.strftime(fmt), "end": (t0 + timedelta(days=2)).strftime(fmt),
+        "first_name": "Paul", "last_name": "Obiang", "email": f"paul{len(pay)}@example.com", "phone": "+241 07 00 00 01",
+        "birth_date": "1988-02-02", "license_number": "GA1", "license_issued_on": "2010-02-02", **pay,
+    }
+    return client.post(f"/vehicules/{vehicle.pk}/", data)
+
+
+def test_cash_booking_through_website(client, vehicle, t0):
+    r = _web_booking(client, vehicle, t0, payment_method="cash")
+    assert r.status_code == 302
+    page = client.get(r["Location"]).content.decode()
+    assert "À régler en espèces" in page
+
+
+def test_mobile_money_requires_number(client, vehicle, t0):
+    r = _web_booking(client, vehicle, t0, payment_method="moov")
+    assert r.status_code == 200 and "numéro qui recevra" in r.content.decode()
+
+
+def test_mobile_money_refusal_is_explained(client, vehicle, t0):
+    r = _web_booking(client, vehicle, t0, payment_method="airtel", mobile_number="+241 07 00 0000")
+    assert r.status_code == 200 and "Paiement refusé" in r.content.decode()

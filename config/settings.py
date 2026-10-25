@@ -112,7 +112,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "fr-fr"
-TIME_ZONE = "Europe/Paris"
+TIME_ZONE = "Africa/Libreville"
 USE_I18N = True
 USE_TZ = True
 
@@ -138,7 +138,11 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {"anon": "60/min"},
 }
 
-# Paiement : "fake" en dev, "stripe" en prod (V2).
+# Marché : Gabon. Montants en francs CFA (XAF), sans centimes.
+CURRENCY_CODE = "XAF"
+CURRENCY_LABEL = "FCFA"
+
+# Paiement : "fake" (simulation) tant qu'un agrégateur Mobile Money n'est pas branché.
 PAYMENT_PROVIDER = os.environ.get("PAYMENT_PROVIDER", "fake")
 
 # Règles métier location

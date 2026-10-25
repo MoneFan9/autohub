@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% load humanize %}
+{% extends "base.html" %}{% load humanize cars %}
 {% block title %}Véhicules d'occasion{% endblock %}
 {% block hero %}<section class="hero"><div class="wrap"><h1>Véhicules d'occasion</h1><p>Ils viennent de notre flotte de location : kilométrage relevé à chaque retour et entretien suivi en agence.</p></div></section>{% endblock %}
 {% block content %}
@@ -17,7 +17,7 @@
         {% include "_energy.html" %}
       </ul>
       <div class="price-row">
-        <div class="price-total num">{{ v.sale_price|floatformat:0|intcomma }} €</div>
+        <div class="price-total num">{{ v.sale_price|fcfa }}</div>
         <a class="btn btn-ghost btn-sm" href="tel:{{ v.agency.phone|cut:' ' }}"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>Appeler l'agence</a>
       </div>
     </div>

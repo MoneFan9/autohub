@@ -1,9 +1,9 @@
-{% extends "base.html" %}{% load humanize %}
+{% extends "base.html" %}{% load humanize cars %}
 {% block title %}Location de voitures{% endblock %}
 {% block hero %}
 <section class="hero"><div class="wrap">
-  <h1>Louez une voiture, sans mauvaise surprise.</h1>
-  <p>Le prix total s'affiche dès la recherche, la caution est annoncée avant de payer, et la réservation se fait en ligne.</p>
+  <h1>Louez une voiture au Gabon, sans mauvaise surprise.</h1>
+  <p>Libreville, Port-Gentil, Franceville. Prix total en FCFA dès la recherche, avec ou sans chauffeur, et paiement par Airtel Money, Moov Money, carte ou espèces en agence.</p>
   <form class="search" method="get" role="search" aria-label="Rechercher un véhicule">
     {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
     <div class="search-main">
@@ -44,8 +44,8 @@
         {% include "_energy.html" %}
       </ul>
       <div class="price-row">
-        <div><div class="price-total num">{{ q.total_amount|floatformat:0|intcomma }} €</div><div class="price-sub">total pour {{ q.days }} jour{{ q.days|pluralize }}</div></div>
-        <div class="price-sub num price-side">{{ v.daily_rate|floatformat:0 }} €/jour{% if q.discount_amount %}<br><span class="badge b-ok">−{{ q.discount_amount|floatformat:0 }} € durée</span>{% endif %}</div>
+        <div><div class="price-total num">{{ q.total_amount|fcfa }}</div><div class="price-sub">total pour {{ q.days }} jour{{ q.days|pluralize }}</div></div>
+        <div class="price-sub num price-side">{{ v.daily_rate|fcfa }}/jour{% if q.discount_amount %}<br><span class="badge b-ok">−{{ q.discount_amount|fcfa }} durée</span>{% endif %}</div>
       </div>
     </div>
   </a>
@@ -57,7 +57,7 @@
 {% endif %}
 <section class="how" aria-labelledby="how-title"><h2 id="how-title" class="sr-only">Comment ça marche</h2><ol>
   <li><div class="n">1</div><h3>Choisissez vos dates</h3><p class="muted">Seuls les véhicules réellement libres sur votre période s'affichent, avec le prix total.</p></li>
-  <li><div class="n">2</div><h3>Réservez en ligne</h3><p class="muted">Options, conducteur et paiement sur une seule page. La caution est une empreinte, pas un débit.</p></li>
+  <li><div class="n">2</div><h3>Réservez en ligne</h3><p class="muted">Options, conducteur et paiement sur une seule page : Mobile Money, carte, ou espèces le jour du départ.</p></li>
   <li><div class="n">3</div><h3>Récupérez en agence</h3><p class="muted">Un état des lieux est fait au départ et au retour, kilométrage et carburant notés.</p></li>
 </ol></section>
 {% endblock %}

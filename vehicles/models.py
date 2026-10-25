@@ -49,8 +49,9 @@ class Vehicle(models.Model):
     class Category(models.TextChoices):
         CITY = "city", "Citadine"
         SEDAN = "sedan", "Berline"
-        SUV = "suv", "SUV"
-        VAN = "van", "Utilitaire"
+        SUV = "suv", "SUV / 4x4"
+        PICKUP = "pickup", "Pick-up"
+        VAN = "van", "Minibus / utilitaire"
         PREMIUM = "premium", "Premium"
 
     class Status(models.TextChoices):
