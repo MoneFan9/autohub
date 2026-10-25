@@ -35,3 +35,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;p
 .planning{overflow-x:auto}.planning td.cell{min-width:44px;padding:4px;border-left:1px solid var(--line)}.planning .bar{display:block;height:22px;border-radius:5px;background:#cfe0ff;font-size:11px;padding:2px 4px;white-space:nowrap;overflow:hidden;color:#0b3a99}
 .planning .bar.active{background:#c9eed7;color:#0d5c30}.planning .bar.pending{background:#ffe7c2;color:#7a4500}
 footer{color:var(--muted);font-size:13px;padding:32px 0}
+header.top nav{align-items:center}header.top nav a.nav-cta{color:#fff;border:1px solid #3a4452;border-radius:8px;padding:5px 12px}header.top nav a.nav-cta:hover{background:#1c2430;text-decoration:none}
+.nav-logout{margin:0}.nav-logout button{background:none;border:0;padding:0;font:inherit;color:#c9d1d9;cursor:pointer}.nav-logout button:hover{text-decoration:underline}
+.auth{max-width:400px;margin:48px auto}.auth h1{margin:0 0 4px;font-size:22px}.auth p.muted{margin:0 0 20px}.auth .field{margin-bottom:14px}
+@media(max-width:600px){header.top .wrap{gap:12px}header.top nav{gap:12px;font-size:14px;overflow-x:auto}}

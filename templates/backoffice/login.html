@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Espace agence{% endblock %}
+{% block content %}
+<form class="panel auth" method="post">{% csrf_token %}
+  <h1>Espace agence</h1>
+  <p class="muted">Réservé au personnel des agences AutoHub.</p>
+  {% if form.non_field_errors %}<div class="msg error">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>{% endif %}
+  {% if next and not form.errors %}<div class="msg error">Connectez-vous pour accéder à cette page.</div>{% endif %}
+  <div class="field"><label for="{{ form.username.id_for_label }}">Identifiant</label>{{ form.username }}</div>
+  <div class="field"><label for="{{ form.password.id_for_label }}">Mot de passe</label>{{ form.password }}</div>
+  <input type="hidden" name="next" value="{{ next }}">
+  <button class="btn" type="submit" style="width:100%">Se connecter</button>
+</form>
+{% endblock %}
