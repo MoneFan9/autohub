@@ -28,10 +28,11 @@ def test_staff_flag_alone_does_not_open_admin(client, db):
     assert client.get("/admin/").status_code == 302
 
 
-def test_owner_has_admin_and_agency_space(client, owner):
+def test_owner_needs_second_factor_for_admin(client, owner):
     client.force_login(owner)
-    assert client.get("/admin/").status_code == 200
     assert client.get("/agence/").status_code == 200
+    # Mot de passe seul : l'admin reste fermé tant que la double authentification n'est pas validée.
+    assert client.get("/admin/").status_code == 302
 
 
 def test_menu_shows_admin_link_to_owner_only(client, agent, owner):
@@ -39,7 +40,8 @@ def test_menu_shows_admin_link_to_owner_only(client, agent, owner):
     html = client.get("/agence/").content.decode()
     assert "Tableau de bord" in html and 'href="/admin/"' not in html
     client.force_login(owner)
-    assert 'href="/admin/"' in client.get("/agence/").content.decode()
+    html = client.get("/agence/").content.decode()
+    assert 'href="/admin/"' in html and "Activez la double authentification" in html
 
 
 def test_agency_can_operate_rentals_via_api(client, agent):

@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -35,6 +36,9 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "rest_framework",
     "django_filters",
+    "django_otp",
+    "django_otp.plugins.otp_totp",
+    "axes",
     "vehicles",
     "customers",
     "rentals",
@@ -49,8 +53,16 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Toujours en dernier : bloque les tentatives de connexion répétées.
+    "axes.middleware.AxesMiddleware",
+]
+
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -73,8 +85,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+# Les prévisualisations Vercel ne doivent jamais toucher la base de production :
+# elles utilisent PREVIEW_DATABASE_URL (branche Neon), sinon le démarrage automatique est désactivé.
+VERCEL_ENV = os.environ.get("VERCEL_ENV", "")
+_db_url = os.environ.get("DATABASE_URL")
+if VERCEL_ENV == "preview" and os.environ.get("PREVIEW_DATABASE_URL"):
+    _db_url = os.environ["PREVIEW_DATABASE_URL"]
+PREVIEW_ON_PRODUCTION_DB = VERCEL_ENV == "preview" and not os.environ.get("PREVIEW_DATABASE_URL")
+
 DATABASES = {
-    "default": _db_from_url(os.environ["DATABASE_URL"]) if os.environ.get("DATABASE_URL") else {
+    "default": _db_from_url(_db_url) if _db_url else {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("POSTGRES_DB", "autohub"),
         "USER": os.environ.get("POSTGRES_USER", "postgres"),
@@ -124,6 +144,36 @@ PAYMENT_PROVIDER = os.environ.get("PAYMENT_PROVIDER", "fake")
 # Règles métier location
 RENTAL_MIN_DRIVER_AGE = 21
 RENTAL_MIN_LICENSE_YEARS = 2
+
+# Connexions : 5 échecs pour un même identifiant depuis une même adresse IP = blocage 15 minutes.
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = timedelta(minutes=15)
+AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+AXES_RESET_ON_SUCCESS = True
+AXES_LOCKOUT_TEMPLATE = "backoffice/lockout.html"
+AXES_IPWARE_PROXY_COUNT = 1
+AXES_IPWARE_META_PRECEDENCE_ORDER = ["HTTP_X_FORWARDED_FOR", "REMOTE_ADDR"]
+
+# Double authentification (TOTP) obligatoire pour l'admin.
+OTP_TOTP_ISSUER = "AutoHub"
+
+# Erreurs : journal sur la sortie standard (logs Vercel) et Sentry si SENTRY_DSN est défini.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "root": {"handlers": ["console"], "level": "WARNING"},
+    "loggers": {"django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False}},
+}
+if os.environ.get("SENTRY_DSN"):
+    import sentry_sdk
+
+    sentry_sdk.init(
+        dsn=os.environ["SENTRY_DSN"],
+        environment=VERCEL_ENV or "local",
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        send_default_pii=False,
+    )
 
 if not DEBUG:
     SESSION_COOKIE_SECURE = True

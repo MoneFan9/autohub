@@ -1,7 +1,8 @@
 {% extends "base.html" %}{% load humanize %}
 {% block title %}Tableau de bord{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>Tableau de bord</h1><p class="muted">{% now "l j F Y" %}</p></div><a class="btn btn-ghost" href="{% url 'backoffice:planning' %}"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg>Voir le planning</a></div>
+<div class="page-head"><div><h1>Tableau de bord</h1><p class="muted">{% now "l j F Y" %}</p></div><div class="head-actions"><a class="btn btn-ghost" href="{% url 'backoffice:password' %}">Mot de passe</a><a class="btn btn-ghost" href="{% url 'backoffice:planning' %}"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg>Voir le planning</a></div></div>
+{% if needs_2fa %}<div class="alert info" role="status"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><div><b>Activez la double authentification.</b> Elle est obligatoire pour ouvrir l'admin. <a href="{% url 'backoffice:security' %}">Configurer maintenant</a></div></div>{% endif %}
 <div class="kpis">
   <div class="card kpi"><b>{{ kpis.fleet }}</b><span>véhicules en flotte</span></div>
   <div class="card kpi"><b>{{ kpis.occupancy }} %</b><span>occupation actuelle</span></div>

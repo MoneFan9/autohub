@@ -33,6 +33,18 @@ Tests : `pytest` (Postgres requis, la contrainte anti-chevauchement est testée 
 - Retour avec dommages : véhicule envoyé à l'atelier, caution conservée.
 - Un formulaire public ne modifie jamais un client existant : l'email doit correspondre au même permis et à la même date de naissance.
 
+## Sécurité et exploitation
+
+| Sujet | Fonctionnement |
+|---|---|
+| Rôles | Groupe « Agence » : espace agence uniquement. Superutilisateur (propriétaire) : seul à accéder à l'admin. |
+| Double authentification | Obligatoire pour l'admin. Le propriétaire l'active une fois sur `/agence/securite/`, puis l'admin demande mot de passe + code. |
+| Tentatives de connexion | 5 échecs pour un même identifiant depuis une même IP : blocage 15 minutes (django-axes), sur l'espace agence et l'admin. |
+| Mots de passe | Chaque membre d'agence change le sien sur `/agence/mot-de-passe/`. |
+| Erreurs | Journal sur la sortie standard (logs Vercel). Sentry s'active si `SENTRY_DSN` est défini. |
+| Prévisualisations | Utilisent `PREVIEW_DATABASE_URL` (branche Neon `preview`). Sans elle, aucune migration ni donnée de démo n'est écrite depuis une prévisualisation. |
+| CI | GitHub Actions : migrations à jour, `check --deploy`, tests sur Postgres 16, à chaque push et demande de fusion. |
+
 ## Hors V1
 
 Vente en ligne (offres, reprise, financement), signature électronique, application mobile d'état des lieux, Stripe, tarification dynamique, multi-tenant.
