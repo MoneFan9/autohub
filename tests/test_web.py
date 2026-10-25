@@ -194,3 +194,10 @@ def test_departure_requires_handover_checkbox(client, agent, vehicle, customer, 
     client.post(f"/espace-vendeur/reservations/{b.reference}/depart/", {"mileage": 10, "fuel_level": 100, "handover_received": "on"})
     b.refresh_from_db()
     assert b.status == "active" and b.balance_due == 0
+
+
+def test_returning_member_dates_are_prefilled(client, member, vehicle, t0):
+    client.force_login(member)
+    _web_booking(client, vehicle, t0, payment_method="cash")
+    html = client.get(f"/vehicules/{vehicle.pk}/").content.decode()
+    assert 'value="1988-02-02"' in html and 'value="2010-02-02"' in html

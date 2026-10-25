@@ -60,9 +60,9 @@ class BookingForm(PeriodForm):
         label="Téléphone", max_length=30,
         widget=forms.TextInput(attrs={"autocomplete": "tel", "inputmode": "tel", "placeholder": "+241 …"}),
     )
-    birth_date = forms.DateField(label="Date de naissance", widget=forms.DateInput(attrs={"type": "date", "autocomplete": "bday"}))
+    birth_date = forms.DateField(label="Date de naissance", widget=forms.DateInput(attrs={"type": "date", "autocomplete": "bday"}, format="%Y-%m-%d"))
     license_number = forms.CharField(label="Numéro de permis", max_length=30)
-    license_issued_on = forms.DateField(label="Permis obtenu le", widget=forms.DateInput(attrs={"type": "date"}))
+    license_issued_on = forms.DateField(label="Permis obtenu le", widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"))
     payment_method = forms.ChoiceField(
         label="Moyen de paiement", widget=forms.RadioSelect, initial="airtel",
         choices=[("airtel", "Airtel Money"), ("moov", "Moov Money"), ("card", "Carte bancaire"), ("cash", "Espèces, à la remise des clés")],
