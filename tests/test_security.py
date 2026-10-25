@@ -47,9 +47,16 @@ def test_login_locked_after_five_failures(client, agent):
     r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123"}, REMOTE_ADDR="10.0.0.1")
     assert r.status_code == 429 and "temporairement bloquée" in r.content.decode()
     assert "_auth_user_id" not in client.session
-    # Une autre adresse IP n'est pas bloquée pour autant.
+    # Changer d'adresse IP ne contourne pas le blocage.
     r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123"}, REMOTE_ADDR="10.0.0.2")
-    assert r.status_code == 302
+    assert r.status_code == 429
+
+
+def test_failures_spread_over_ips_still_lock(client, agent):
+    for i in range(5):
+        client.post("/agence/connexion/", {"username": "agent", "password": "faux"}, REMOTE_ADDR=f"10.0.1.{i}")
+    r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123"}, REMOTE_ADDR="10.0.1.99")
+    assert r.status_code == 429
 
 
 def test_agency_member_changes_password(client, agent):
@@ -69,3 +76,10 @@ def test_preview_on_production_db_never_bootstraps(monkeypatch):
     monkeypatch.setattr(bootstrap, "call_command", lambda *a, **k: calls.append(a))
     bootstrap.run()
     assert calls == []
+
+
+def test_many_usernames_from_one_ip_lock_the_ip(client, agent):
+    for i in range(5):
+        client.post("/agence/connexion/", {"username": f"inconnu{i}", "password": "faux"}, REMOTE_ADDR="10.0.2.1")
+    r = client.post("/agence/connexion/", {"username": "agent", "password": "Secret-123"}, REMOTE_ADDR="10.0.2.1")
+    assert r.status_code == 429
