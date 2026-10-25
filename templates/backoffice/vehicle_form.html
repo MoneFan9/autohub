@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{% if vehicle %}Modifier {{ vehicle.title }}{% else %}Ajouter un véhicule{% endif %}{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'backoffice:vehicles' %}"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg>Mes véhicules</a>
+<div class="page-head"><div><h1>{% if vehicle %}Modifier {{ vehicle.title }}{% else %}Ajouter un véhicule{% endif %}</h1></div></div>
+<form class="form-narrow" method="post" novalidate>{% csrf_token %}
+  {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% elif form.errors %}<div class="alert error" role="alert">Certains champs sont à corriger, ils sont signalés en rouge ci-dessous.</div>{% endif %}
+  <div class="steps">
+    <fieldset class="step"><legend>Le véhicule</legend><div class="grid-2">
+      {% include "_field.html" with f=form.brand %}{% include "_field.html" with f=form.model %}
+      {% include "_field.html" with f=form.year %}{% include "_field.html" with f=form.category %}
+      {% include "_field.html" with f=form.fuel %}{% include "_field.html" with f=form.transmission %}
+      {% include "_field.html" with f=form.seats %}{% include "_field.html" with f=form.color %}
+      {% include "_field.html" with f=form.mileage %}{% include "_field.html" with f=form.plate %}
+      {% include "_field.html" with f=form.description full=True %}
+    </div></fieldset>
+    <fieldset class="step"><legend>Location</legend><div class="grid-2">
+      <label class="check full">{{ form.is_rentable }} {{ form.is_rentable.label }}</label>
+      {% include "_field.html" with f=form.daily_rate %}{% include "_field.html" with f=form.agency %}
+      {% include "_field.html" with f=form.status %}
+      <p class="help full">AutoHub prélève {{ platform_fee_pct }} % du total de chaque location. La caution (3 jours de location, 100 000 FCFA minimum) vous est remise au départ.</p>
+    </div></fieldset>
+    <fieldset class="step"><legend>Vente</legend><div class="grid-2">
+      <label class="check full">{{ form.is_for_sale }} {{ form.is_for_sale.label }}</label>
+      {% include "_field.html" with f=form.sale_price %}
+      <p class="help full">Les acheteurs vous contactent par téléphone ou WhatsApp. Aucune commission sur les ventes.</p>
+    </div></fieldset>
+  </div>
+  <button class="btn btn-lg" type="submit">{% if vehicle %}Enregistrer{% else %}Publier le véhicule{% endif %}</button>
+</form>
+{% endblock %}

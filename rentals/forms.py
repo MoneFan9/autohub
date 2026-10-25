@@ -37,18 +37,23 @@ class PeriodForm(forms.Form):
 
 
 class SearchForm(PeriodForm):
-    agency = forms.ModelChoiceField(Agency.objects.all(), label="Agence", required=False, empty_label="Toutes les agences")
+    city = forms.ChoiceField(label="Ville", required=False)
     category = forms.ChoiceField(label="Catégorie", required=False, choices=[("", "Toutes")] + Vehicle.Category.choices)
     fuel = forms.ChoiceField(label="Énergie", required=False, choices=[("", "Toutes")] + Vehicle.Fuel.choices)
     transmission = forms.ChoiceField(label="Boîte", required=False, choices=[("", "Toutes")] + Vehicle.Transmission.choices)
     max_rate = forms.DecimalField(label="Budget max / jour", required=False, min_value=0)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        cities = Agency.objects.filter(vehicles__isnull=False).values_list("city", flat=True).distinct().order_by("city")
+        self.fields["city"].choices = [("", "Toutes les villes")] + [(c, c) for c in cities]
 
 
 class BookingForm(PeriodForm):
     extras = forms.ModelMultipleChoiceField(
         Extra.objects.all(), required=False, widget=forms.CheckboxSelectMultiple, label="Options", to_field_name="code",
     )
-    return_agency = forms.ModelChoiceField(Agency.objects.all(), label="Agence de retour", required=False, empty_label="Même agence qu'au départ")
+    return_agency = forms.ModelChoiceField(Agency.objects.all(), label="Lieu de retour", required=False, empty_label="Même lieu qu'au départ")
     first_name = forms.CharField(label="Prénom", max_length=80, widget=forms.TextInput(attrs={"autocomplete": "given-name"}))
     last_name = forms.CharField(label="Nom", max_length=80, widget=forms.TextInput(attrs={"autocomplete": "family-name"}))
     phone = forms.CharField(
@@ -76,8 +81,10 @@ class BookingForm(PeriodForm):
     CUSTOMER_FIELDS = ["first_name", "last_name", "phone", "birth_date", "license_number", "license_issued_on"]
     METHOD_LABELS = dict(payment_method.choices)
 
-    def __init__(self, *args, methods=None, **kwargs):
+    def __init__(self, *args, methods=None, seller=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if seller is not None:
+            self.fields["return_agency"].queryset = seller.locations.all()
         if methods:
             # Seuls les moyens acceptés par ce loueur sont proposés.
             self.fields["payment_method"].choices = [(m, self.METHOD_LABELS[m]) for m in ("airtel", "moov", "card", "cash") if m in methods]

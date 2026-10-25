@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
@@ -31,7 +32,9 @@ def home(request):
         d = form.cleaned_data
         services.expire_stale_pending(None)
         qs = Vehicle.objects.available_between(d["start"], d["end"]).select_related("agency__seller")
-        for field in ("agency", "category", "fuel", "transmission"):
+        if d.get("city"):
+            qs = qs.filter(agency__city=d["city"])
+        for field in ("category", "fuel", "transmission"):
             if d.get(field):
                 qs = qs.filter(**{field: d[field]})
         if d.get("max_rate"):
@@ -60,7 +63,7 @@ def vehicle_detail(request, pk):
     vehicle = get_object_or_404(Vehicle.objects.rentable().select_related("agency__seller"), pk=pk)
     seller = vehicle.agency.seller
     methods = seller.payment_methods if seller else None
-    form = BookingForm(request.POST or None, initial={**_period_initial(request), **_driver_initial(request.user)}, methods=methods)
+    form = BookingForm(request.POST or None, initial={**_period_initial(request), **_driver_initial(request.user)}, methods=methods, seller=seller)
     quote = None
     if request.method == "POST" and not request.user.is_authenticated:
         return redirect(f"{reverse('accounts:login')}?next={request.path}")
@@ -107,7 +110,6 @@ def _visible_booking(request, reference):
 def booking_payment(request, reference):
     """Mobile Money : le client valide la demande de paiement sur son téléphone."""
     booking = _visible_booking(request, reference)
-    payment = booking.payments.filter(kind="charge").order_by("-created_at").first()
     if booking.status == Booking.Status.CONFIRMED:
         return redirect("booking-confirmation", reference=reference)
     if request.method == "POST" and booking.status == Booking.Status.PENDING:
@@ -118,7 +120,9 @@ def booking_payment(request, reference):
         if status == "pending":
             messages.info(request, "Paiement pas encore validé. Validez la demande sur votre téléphone puis réessayez.")
         booking.refresh_from_db()
-    return render(request, "public/booking_payment.html", {"booking": booking, "payment": payment})
+    payment = booking.payments.filter(kind="charge").order_by("-created_at").first()
+    return render(request, "public/booking_payment.html",
+                  {"booking": booking, "payment": payment, "hold_minutes": settings.PENDING_PAYMENT_MINUTES})
 
 
 def booking_confirmation(request, reference):

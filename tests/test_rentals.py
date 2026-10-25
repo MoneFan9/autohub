@@ -81,9 +81,11 @@ class TestLifecycle:
     def test_full_cycle(self, vehicle, customer, t0):
         b = services.pay_and_confirm(book(vehicle, customer, t0, t0 + 2 * D), "tok_visa")
         assert b.status == Booking.Status.CONFIRMED
-        assert set(b.payments.values_list("kind", flat=True)) == {"charge", "deposit_hold"}
+        assert set(b.payments.values_list("kind", flat=True)) == {"charge"}
+        assert b.platform_fee == Decimal("2")  # 2 % de 76
 
-        services.start_rental(b, mileage=1000, fuel_level=100)
+        services.start_rental(b, mileage=1000, fuel_level=100, handover_received=True)
+        assert b.payments.filter(kind="deposit_hold", method="cash").exists()  # caution remise au loueur
         vehicle.refresh_from_db()
         assert vehicle.status == Vehicle.Status.RENTED
 
@@ -94,7 +96,7 @@ class TestLifecycle:
 
     def test_damage_on_return_sends_to_workshop_and_keeps_deposit(self, vehicle, customer, t0):
         b = services.pay_and_confirm(book(vehicle, customer, t0, t0 + D), "tok_visa")
-        services.start_rental(b, mileage=1000, fuel_level=100)
+        services.start_rental(b, mileage=1000, fuel_level=100, handover_received=True)
         services.complete_rental(b, mileage=1100, fuel_level=50, damages="Rayure portière")
         vehicle.refresh_from_db()
         assert vehicle.status == Vehicle.Status.MAINTENANCE
@@ -102,13 +104,13 @@ class TestLifecycle:
 
     def test_return_mileage_cannot_decrease(self, vehicle, customer, t0):
         b = services.pay_and_confirm(book(vehicle, customer, t0, t0 + D), "tok_visa")
-        services.start_rental(b, mileage=1000, fuel_level=100)
+        services.start_rental(b, mileage=1000, fuel_level=100, handover_received=True)
         with pytest.raises(services.BookingError):
             services.complete_rental(b, mileage=900, fuel_level=50)
 
     def test_cannot_start_unpaid_booking(self, vehicle, customer, t0):
         with pytest.raises(services.BookingError):
-            services.start_rental(book(vehicle, customer, t0, t0 + D), mileage=1, fuel_level=1)
+            services.start_rental(book(vehicle, customer, t0, t0 + D), mileage=1, fuel_level=1, handover_received=True)
 
     def test_cancel_confirmed_refunds(self, vehicle, customer, t0):
         b = services.pay_and_confirm(book(vehicle, customer, t0, t0 + D), "tok_visa")
@@ -134,7 +136,7 @@ class TestCash:
         b = services.pay_and_confirm(book(vehicle, customer, t0, t0 + D), services.CASH_TOKEN)
         with pytest.raises(services.BookingError, match="espèces"):
             services.start_rental(b, mileage=10, fuel_level=100)
-        services.start_rental(b, mileage=10, fuel_level=100, cash_received=True)
+        services.start_rental(b, mileage=10, fuel_level=100, handover_received=True)
         kinds = set(b.payments.values_list("kind", "method"))
         assert kinds == {("charge", "cash"), ("deposit_hold", "cash")}
         assert b.balance_due == 0
@@ -148,3 +150,30 @@ class TestCash:
         b = services.pay_and_confirm(book(vehicle, customer, t0, t0 + D), "airtel_ok")
         assert set(b.payments.values_list("method", flat=True)) == {"airtel"}
         assert b.balance_due == 0
+
+
+class TestMobileMoney:
+    def test_request_to_pay_then_confirm(self, vehicle, customer, t0):
+        b = book(vehicle, customer, t0, t0 + D)
+        services.start_mobile_payment(b, "airtel", "+241 07 12 34 56")
+        assert b.status == Booking.Status.PENDING and b.payments.get().status == "pending"
+        assert services.finalize_mobile_payment(b) == "succeeded"
+        b.refresh_from_db()
+        assert b.status == Booking.Status.CONFIRMED and b.payment_method == "airtel" and b.platform_fee == Decimal("1")
+
+    def test_refused_request_cancels(self, vehicle, customer, t0):
+        b = book(vehicle, customer, t0, t0 + D)
+        services.start_mobile_payment(b, "moov", "+241 06 00 0000")
+        assert services.finalize_mobile_payment(b) == "failed"
+        b.refresh_from_db()
+        assert b.status == Booking.Status.CANCELLED
+
+    def test_pending_blocks_vehicle_until_expiry(self, vehicle, customer, t0):
+        b = book(vehicle, customer, t0, t0 + D)
+        services.start_mobile_payment(b, "airtel", "+241 07 12 34 56")
+        with pytest.raises(services.VehicleUnavailable):
+            book(vehicle, customer, t0, t0 + D)
+        Booking.objects.filter(pk=b.pk).update(created_at=b.created_at - timedelta(minutes=20))
+        book(vehicle, customer, t0, t0 + D)  # la demande expirée libère le créneau
+        b.refresh_from_db()
+        assert b.status == Booking.Status.CANCELLED

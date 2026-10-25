@@ -1,0 +1,19 @@
+<fieldset class="step"><legend>Vous</legend>
+  <div class="grid-2">
+    {% include "_field.html" with f=form.display_name full=True %}
+    <div class="field full{% if form.kind.errors %} has-error{% endif %}"><span class="label" id="kind-label">{{ form.kind.label }}</span>
+      <div class="options inline" role="radiogroup" aria-labelledby="kind-label">{% for r in form.kind %}<label class="option">{{ r.tag }}<span class="opt-label">{{ r.choice_label }}</span></label>{% endfor %}</div>{{ form.kind.errors }}</div>
+    {% include "_field.html" with f=form.city %}
+    {% include "_field.html" with f=form.phone %}
+    {% include "_field.html" with f=form.whatsapp %}
+  </div>
+</fieldset>
+<fieldset class="step"><legend>Paiements acceptés</legend>
+  <div class="options" role="group" aria-label="Moyens de paiement acceptés">
+    <label class="option">{{ form.accepts_airtel }}<span class="opt-text"><span class="opt-label">Airtel Money</span><span class="opt-desc">Reversé sur votre numéro de versement</span></span></label>
+    <label class="option">{{ form.accepts_moov }}<span class="opt-text"><span class="opt-label">Moov Money</span><span class="opt-desc">Reversé sur votre numéro de versement</span></span></label>
+    <label class="option">{{ form.accepts_card }}<span class="opt-text"><span class="opt-label">Carte bancaire</span><span class="opt-desc">Visa, Mastercard</span></span></label>
+    <label class="option">{{ form.accepts_cash }}<span class="opt-text"><span class="opt-label">Espèces</span><span class="opt-desc">Vous encaissez à la remise des clés, commission due à AutoHub</span></span></label>
+  </div>
+  <div class="grid-2 spaced">{% include "_field.html" with f=form.payout_number %}</div>
+</fieldset>

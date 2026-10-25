@@ -2,12 +2,12 @@
 {% block title %}Location de voitures{% endblock %}
 {% block hero %}
 <section class="hero"><div class="wrap">
-  <h1>Louez une voiture au Gabon, sans mauvaise surprise.</h1>
-  <p>Libreville, Port-Gentil, Franceville. Prix total en FCFA dès la recherche, avec ou sans chauffeur, et paiement par Airtel Money, Moov Money, carte ou espèces en agence.</p>
+  <h1>Louez une voiture au Gabon, directement à son propriétaire.</h1>
+  <p>Particuliers et professionnels de Libreville, Port-Gentil, Franceville. Prix total en FCFA dès la recherche, avec ou sans chauffeur, payé par Airtel Money, Moov Money, carte ou en espèces à la remise des clés.</p>
   <form class="search" method="get" role="search" aria-label="Rechercher un véhicule">
     {% if form.non_field_errors %}<div class="alert error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
     <div class="search-main">
-      {% include "_field.html" with f=form.agency %}
+      {% include "_field.html" with f=form.city %}
       {% include "_field.html" with f=form.start %}
       {% include "_field.html" with f=form.end %}
       <button class="btn btn-lg" type="submit"><svg class="i" aria-hidden="true"><use href="#i-search"/></svg>Rechercher</button>
@@ -38,6 +38,7 @@
     <div class="body">
       <div class="meta"><span class="where"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg>{{ v.agency.city }}</span><span>{{ v.year }}</span></div>
       <h3>{{ v.title }}</h3>
+      <p class="muted small by">par {{ v.agency.seller.display_name|default:"AutoHub" }}</p>
       <ul class="specs">
         <li><svg class="i" aria-hidden="true"><use href="#i-seat"/></svg>{{ v.seats }} places</li>
         <li><svg class="i" aria-hidden="true"><use href="#i-gear"/></svg>{{ v.get_transmission_display }}</li>
@@ -52,12 +53,13 @@
 {% endfor %}
 </div>
 {% else %}
-<div class="empty"><h2>Aucun véhicule libre avec ces critères</h2><p>Essayez d'élargir la période, de choisir une autre agence ou de retirer des filtres.</p><a class="btn btn-ghost" href="{% url 'home' %}">Réinitialiser la recherche</a></div>
+<div class="empty"><h2>Aucun véhicule libre avec ces critères</h2><p>Essayez d'élargir la période, de choisir une autre ville ou de retirer des filtres.</p><a class="btn btn-ghost" href="{% url 'home' %}">Réinitialiser la recherche</a></div>
 {% endif %}
 {% endif %}
 <section class="how" aria-labelledby="how-title"><h2 id="how-title" class="sr-only">Comment ça marche</h2><ol>
   <li><div class="n">1</div><h3>Choisissez vos dates</h3><p class="muted">Seuls les véhicules réellement libres sur votre période s'affichent, avec le prix total.</p></li>
-  <li><div class="n">2</div><h3>Réservez en ligne</h3><p class="muted">Options, conducteur et paiement sur une seule page : Mobile Money, carte, ou espèces le jour du départ.</p></li>
-  <li><div class="n">3</div><h3>Récupérez en agence</h3><p class="muted">Un état des lieux est fait au départ et au retour, kilométrage et carburant notés.</p></li>
+  <li><div class="n">2</div><h3>Réservez en ligne</h3><p class="muted">Options, conducteur et paiement sur une seule page : Mobile Money, carte, ou espèces le jour du départ, selon ce que le loueur accepte.</p></li>
+  <li><div class="n">3</div><h3>Récupérez les clés</h3><p class="muted">Le loueur vérifie votre permis, reçoit la caution et fait l'état des lieux avec vous, au départ comme au retour.</p></li>
 </ol></section>
+<section class="card panel cta-panel" aria-labelledby="pub-title"><div><h2 id="pub-title">Vous avez un véhicule ?</h2><p class="muted">Louez-le ou vendez-le sur AutoHub. Inscription gratuite, {{ platform_fee_pct }} % de commission sur les locations seulement.</p></div><a class="btn" href="{% url 'accounts:become_seller' %}">Publier un véhicule</a></section>
 {% endblock %}

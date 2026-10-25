@@ -4,9 +4,10 @@
 <section class="card confirm" aria-labelledby="ok-title">
   <div class="check"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></div>
   <h1 id="ok-title">Votre réservation est confirmée</h1>
-  <p class="muted">Référence <b class="num">{{ booking.reference }}</b>. Conservez-la, l'agence vous la demandera.</p>
+  <p class="muted">Référence <b class="num">{{ booking.reference }}</b>. Conservez-la, le loueur vous la demandera.</p>
   <table class="summary">
     <tr><td>Véhicule</td><td>{{ booking.vehicle.title }}</td></tr>
+    <tr><td>Loueur</td><td>{{ booking.seller.display_name|default:"AutoHub" }}{% if booking.seller.phone %}<div class="muted small"><a href="tel:{{ booking.seller.phone|cut:' ' }}">{{ booking.seller.phone }}</a></div>{% endif %}</td></tr>
     <tr><td>Départ</td><td><div class="when"><b>{{ booking.start|date:"l j F, H:i" }}</b><span class="muted">{{ booking.pickup_agency.name }}</span></div></td></tr>
     <tr><td>Retour</td><td><div class="when"><b>{{ booking.end|date:"l j F, H:i" }}</b><span class="muted">{{ booking.return_agency.name }}</span></div></td></tr>
     {% if booking.extras.all %}<tr><td>Options</td><td>{{ booking.extras.all|join:", " }}</td></tr>{% endif %}
@@ -14,11 +15,11 @@
     <tr class="total"><td>À régler en espèces au départ</td><td>{{ booking.balance_due|fcfa }}</td></tr>
     <tr class="deposit"><td>Caution, en espèces également</td><td>{{ booking.deposit_amount|fcfa }}</td></tr>
     {% else %}
-    <tr class="total"><td>Payé</td><td>{{ booking.total_amount|fcfa }}</td></tr>
-    <tr class="deposit"><td>Caution</td><td>{{ booking.deposit_amount|fcfa }}</td></tr>
+    <tr class="total"><td>Payé ({{ booking.payment_label }})</td><td>{{ booking.total_amount|fcfa }}</td></tr>
+    <tr class="deposit"><td>Caution, remise au loueur au départ</td><td>{{ booking.deposit_amount|fcfa }}</td></tr>
     {% endif %}
   </table>
-  <div class="alert info">Le jour du départ, présentez-vous à l'agence {{ booking.pickup_agency.name }} ({{ booking.pickup_agency.address }}) avec votre permis{% if booking.balance_due %} et {{ booking.balance_due|add:booking.deposit_amount|fcfa }} en espèces{% endif %}.</div>
-  <a class="btn btn-ghost" href="{% url 'home' %}">Retour à l'accueil</a>
+  <div class="alert info">Le jour du départ, rendez-vous à {{ booking.pickup_agency.name }} ({{ booking.pickup_agency.address }}, {{ booking.pickup_agency.city }}) avec votre permis, une pièce d'identité et {% if booking.balance_due %}{{ booking.balance_due|add:booking.deposit_amount|fcfa }} en espèces (location + caution){% else %}la caution de {{ booking.deposit_amount|fcfa }}{% endif %}. Le loueur vérifie vos documents puis vous remet les clés.</div>
+  <a class="btn btn-ghost" href="{% url 'accounts:home' %}">Voir mes réservations</a>
 </section>
 {% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% load humanize cars %}
+{% block title %}Mes véhicules{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Mes véhicules</h1><p class="muted">{{ vehicles|length }} véhicule{{ vehicles|length|pluralize }}</p></div><div class="head-actions">{% if my_seller %}<a class="btn" href="{% url 'backoffice:vehicle_new' %}">Ajouter un véhicule</a>{% endif %}</div></div>
+{% include "backoffice/_tabs.html" %}
+{% if vehicles %}
+<div class="card table-wrap"><table class="table">
+<thead><tr><th>Véhicule</th><th>Lieu</th><th>Disponibilité</th><th class="amount">Location / jour</th><th class="amount">Vente</th><th><span class="sr-only">Actions</span></th></tr></thead>
+<tbody>{% for v in vehicles %}<tr>
+  <td><b>{{ v.title }}</b><div class="muted small">{{ v.year }} · {{ v.mileage|intcomma }} km{% if v.plate %} · {{ v.plate }}{% endif %}</div></td>
+  <td>{{ v.agency.name }}<div class="muted small">{{ v.agency.city }}</div></td>
+  <td><span class="badge b-{{ v.status }}">{{ v.get_status_display }}</span></td>
+  <td class="amount">{% if v.is_rentable %}{{ v.daily_rate|fcfa }}{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td class="amount">{% if v.is_for_sale %}{{ v.sale_price|fcfa }}{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td>{% if my_seller and v.agency.seller_id == my_seller.pk %}<a class="btn btn-sm btn-ghost" href="{% url 'backoffice:vehicle_edit' v.pk %}">Modifier</a>{% endif %}</td>
+</tr>{% endfor %}</tbody></table></div>
+{% else %}
+<div class="empty"><h2>Aucun véhicule publié</h2><p>Ajoutez votre premier véhicule : il apparaîtra tout de suite dans les recherches.</p>{% if my_seller %}<a class="btn" href="{% url 'backoffice:vehicle_new' %}">Ajouter un véhicule</a>{% endif %}</div>
+{% endif %}
+{% endblock %}

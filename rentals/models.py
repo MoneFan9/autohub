@@ -87,6 +87,12 @@ class Booking(models.Model):
     def seller(self):
         return self.vehicle.agency.seller
 
+    PAYMENT_LABELS = {"airtel": "Airtel Money", "moov": "Moov Money", "card": "Carte", "cash": "Espèces"}
+
+    @property
+    def payment_label(self):
+        return self.PAYMENT_LABELS.get(self.payment_method, "—")
+
     @property
     def seller_amount(self):
         return self.total_amount - self.platform_fee

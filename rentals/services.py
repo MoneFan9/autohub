@@ -46,6 +46,8 @@ def create_booking(*, vehicle, customer, start, end, pickup_agency=None, return_
     if not Vehicle.objects.rentable().filter(pk=vehicle.pk).exists():
         raise VehicleUnavailable("Ce véhicule n'est pas proposé à la location.")
     check_driver(customer, start.date())
+    if return_agency is not None and return_agency.seller_id != vehicle.agency.seller_id:
+        raise BookingError("Le lieu de retour doit appartenir au même loueur.")
     q = pricing.quote(vehicle, start, end, extras)
     booking = Booking(
         vehicle=vehicle,

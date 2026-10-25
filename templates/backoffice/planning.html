@@ -2,7 +2,8 @@
 {% block title %}Planning{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>Planning de la flotte</h1><p class="muted">14 prochains jours</p></div>
-<div class="legend"><span><i class="bar"></i>Confirmée</span><span><i class="bar active"></i>En cours</span><span><i class="bar pending"></i>En attente</span></div></div>
+<div class="legend" aria-label="Légende"><span><i class="bar"></i>Confirmée</span><span><i class="bar active"></i>En cours</span><span><i class="bar pending"></i>En attente</span></div></div>
+{% include "backoffice/_tabs.html" %}
 <div class="card planning"><table>
 <thead><tr><th class="veh">Véhicule</th>{% for d in days %}<th{% if forloop.first %} class="today"{% endif %}>{{ d|date:"D" }}<br>{{ d|date:"j" }}</th>{% endfor %}</tr></thead>
 <tbody>{% for v, cells in rows %}<tr><th class="veh" scope="row"><b>{{ v.title }}</b><div class="muted small">{{ v.plate }} · {{ v.agency.city }}</div></th>

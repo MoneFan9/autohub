@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% load humanize cars %}
+{% block title %}{{ vehicle.title }} d'occasion{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'used-cars' %}"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg>Toutes les occasions</a>
+<div class="detail">
+  <div>
+    {% include "_car.html" with v=vehicle badge=True %}
+    <h1 class="detail-title">{{ vehicle.title }}</h1>
+    <p class="muted">{{ vehicle.get_category_display }} · {{ vehicle.year }}{% if vehicle.color %} · {{ vehicle.color }}{% endif %}</p>
+    <div class="facts">
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-road"/></svg><div><b class="num">{{ vehicle.mileage|intcomma }} km</b><span>au compteur</span></div></div>
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-gear"/></svg><div><b>{{ vehicle.get_transmission_display }}</b><span>boîte</span></div></div>
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-{% if vehicle.fuel == 'electric' %}bolt{% elif vehicle.fuel == 'hybrid' %}leaf{% else %}fuel{% endif %}"/></svg><div><b>{{ vehicle.get_fuel_display }}</b><span>énergie</span></div></div>
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-seat"/></svg><div><b>{{ vehicle.seats }}</b><span>places</span></div></div>
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg><div><b>{{ vehicle.agency.city }}</b><span>{{ vehicle.agency.name }}</span></div></div>
+      <div class="fact"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg><div><b>{{ vehicle.year }}</b><span>mise en circulation</span></div></div>
+    </div>
+    {% if vehicle.description %}<p>{{ vehicle.description }}</p>{% endif %}
+  </div>
+  <aside class="card summary-card" aria-labelledby="price-title">
+    <h2 id="price-title" class="sr-only">Prix et vendeur</h2>
+    <div class="price-total big num">{{ vehicle.sale_price|fcfa }}</div>
+    <p class="muted small">Prix fixé par le vendeur. Paiement et remise des papiers directement entre vous.</p>
+    {% include "public/_seller.html" with contact=True contact_text="Bonjour, votre "|add:vehicle.title|add:" est-il toujours à vendre ? (AutoHub)" %}
+    {% if not seller.phone %}<p class="alert info">Contact : {{ vehicle.agency.phone }}</p>{% endif %}
+    {% if vehicle.is_rentable %}<a class="btn btn-ghost btn-block" href="{% url 'vehicle-detail' vehicle.pk %}">Le louer d'abord pour l'essayer</a>{% endif %}
+    <ul class="trust">
+      <li><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>Voyez le véhicule et la carte grise avant de payer</li>
+      <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Aucune commission AutoHub sur les ventes</li>
+    </ul>
+  </aside>
+</div>
+{% endblock %}

@@ -5,14 +5,13 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
-from backoffice.roles import AGENCY_GROUP
+from accounts.models import Seller
 from customers.models import Customer
-from payments.services import charge_booking
+from payments.services import charge_booking, platform_fee
 from rentals import services
 from rentals.models import Booking, Extra
 from vehicles.models import Agency, Vehicle
@@ -35,6 +34,21 @@ FLEET = [
     ("Nissan", "Navara", "pickup", "diesel", "manual", 5, 65000, None),
     ("Toyota", "Hilux", "pickup", "diesel", "manual", 5, 70000, None),
     ("Toyota", "Hiace", "van", "diesel", "manual", 14, 90000, None),
+    ("Kia", "Sportage", "suv", "petrol", "auto", 5, None, 9800000),  # particulier, vente uniquement
+]
+
+DEMO_DOMAIN = "demo.autohub.ga"
+# Vendeurs de démonstration : (identifiant, nom affiché, type, ville, moyens acceptés, lieux, indices FLEET)
+SELLERS = [
+    ("agent", "Loc'Auto Libreville", "pro", "Libreville", ("airtel", "moov", "card", "cash"),
+     [("Aéroport Léon-Mba", "Libreville", "Parking loueurs, aéroport international"), ("Centre-ville", "Libreville", "Boulevard Triomphal")],
+     [0, 2, 6, 9, 10, 13]),
+    (f"ndong@{DEMO_DOMAIN}", "Garage Ndong Automobiles", "pro", "Port-Gentil", ("airtel", "moov", "cash"),
+     [("Garage", "Port-Gentil", "Centre-ville")], [1, 3, 5, 12]),
+    (f"mabika@{DEMO_DOMAIN}", "Ets Mabika Location", "pro", "Franceville", ("moov", "cash"),
+     [("Agence", "Franceville", "Centre-ville")], [4, 7, 8, 11]),
+    (f"marc.ella@{DEMO_DOMAIN}", "Marc E.", "individual", "Libreville", ("airtel", "cash"),
+     [("Domicile", "Libreville", "Quartier Louis")], [14]),
 ]
 
 
@@ -44,13 +58,20 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **opts):
         random.seed(7)
-        # Agences et numéros de démonstration.
-        agencies = [
-            Agency.objects.get_or_create(name="AutoHub Aéroport Léon-Mba", defaults=dict(city="Libreville", address="Aéroport international Léon-Mba", phone="+241 01 00 00 01"))[0],
-            Agency.objects.get_or_create(name="AutoHub Centre-ville", defaults=dict(city="Libreville", address="Boulevard Triomphal", phone="+241 01 00 00 02"))[0],
-            Agency.objects.get_or_create(name="AutoHub Port-Gentil", defaults=dict(city="Port-Gentil", address="Centre-ville", phone="+241 01 00 00 03"))[0],
-            Agency.objects.get_or_create(name="AutoHub Franceville", defaults=dict(city="Franceville", address="Centre-ville", phone="+241 01 00 00 04"))[0],
-        ]
+        User = get_user_model()
+        sellers, vehicle_place = [], {}
+        for n, (login, name, kind, city, methods, places, fleet_idx) in enumerate(SELLERS):
+            user = self._staff() if login == "agent" else self._demo_user(login, name.split()[0], name.split()[-1])
+            seller, _ = Seller.objects.get_or_create(user=user, defaults=dict(
+                display_name=name, kind=kind, city=city, phone=f"+241 0{n + 1} 00 00 0{n + 1}",
+                whatsapp=f"+241 07 10 00 0{n + 1}", payout_number=f"+241 07 10 00 0{n + 1}",
+                **{f"accepts_{m}": m in methods for m in ("airtel", "moov", "card", "cash")},
+            ))
+            locs = [Agency.objects.get_or_create(seller=seller, name=pname, defaults=dict(city=pcity, address=addr, phone=seller.phone))[0]
+                    for pname, pcity, addr in places]
+            for k, i in enumerate(fleet_idx):
+                vehicle_place[i] = locs[k % len(locs)]
+            sellers.append(seller)
         # (code, libellé, FCFA/jour, plafond, description) ; plafond = prix/jour : forfait unique.
         for code, label, price, cap, desc in [
             ("chauffeur", "Avec chauffeur", 25000, None, "Chauffeur professionnel, jusqu'à 10 h par jour"),
@@ -70,10 +91,11 @@ class Command(BaseCommand):
                 defaults=dict(
                     vin="".join(random.choice(VIN_CHARS) for _ in range(17)), brand=brand, model=model,
                     year=random.choice([2022, 2023, 2024, 2025]), mileage=random.randint(8000, 62000),
-                    fuel=fuel, transmission=box, category=cat, seats=seats, agency=agencies[i % len(agencies)],
-                    daily_rate=Decimal(rate), is_for_sale=sale is not None, sale_price=sale and Decimal(sale),
-                    purchase_price=Decimal(rate * 330), color=random.choice(["Blanc", "Blanc", "Gris", "Noir"]),
-                    description=f"{brand} {model}, climatisation, entretien suivi en agence.",
+                    fuel=fuel, transmission=box, category=cat, seats=seats, agency=vehicle_place[i],
+                    is_rentable=rate is not None, daily_rate=rate and Decimal(rate),
+                    is_for_sale=sale is not None, sale_price=sale and Decimal(sale),
+                    purchase_price=Decimal((rate or 30000) * 330), color=random.choice(["Blanc", "Blanc", "Gris", "Noir"]),
+                    description=f"{brand} {model}, climatisation, entretien suivi.",
                 ),
             )
             vehicles.append(v)
@@ -84,10 +106,13 @@ class Command(BaseCommand):
 
         names = [("Jean", "Mba Ondo"), ("Christelle", "Nzé Mintsa"), ("Paul", "Obiang"), ("Grâce", "Moussavou"),
                  ("Hervé", "Boussougou"), ("Sylvie", "Ndong"), ("Arnaud", "Mabika"), ("Nadège", "Ella")]
-        customers = [Customer.objects.create(
-            first_name=f, last_name=l, email=f"{f.lower()}.{l.lower().replace(' ', '')}@example.com", phone=f"+241 07 00 00 {i:02d}",
-            birth_date=date(1985 + i, 3, 10), license_number=f"FR{900000 + i}", license_issued_on=date(2008 + i, 6, 1),
-        ) for i, (f, l) in enumerate(names)]
+        customers = []
+        for i, (f, l) in enumerate(names):
+            user = self._demo_user(f"{f.lower()}.{l.lower().replace(' ', '')}@{DEMO_DOMAIN}", f, l)
+            customers.append(Customer.objects.create(
+                user=user, first_name=f, last_name=l, email=user.email, phone=f"+241 07 00 00 {i:02d}",
+                birth_date=date(1985 + i, 3, 10), license_number=f"GA{900000 + i}", license_issued_on=date(2008 + i, 6, 1),
+            ))
 
         now = timezone.now().replace(minute=0, second=0, microsecond=0)
         extras = list(Extra.objects.all())
@@ -101,35 +126,47 @@ class Command(BaseCommand):
             start = now + timedelta(days=offset)
             b = self._book(vehicles[vi], customers[ci], start, start + timedelta(days=length), random.sample(extras, k=random.randint(0, 2)))
             if final == "active":
-                services.start_rental(b, mileage=vehicles[vi].mileage, fuel_level=100, user=staff)
+                services.start_rental(b, mileage=vehicles[vi].mileage, fuel_level=100, user=staff, handover_received=True)
             elif final == "cancelled":
                 services.cancel_booking(b)
         # Historique : locations terminées (CA sur 30 jours)
         for vi, ci, offset, length in [(6, 3, -20, 5), (11, 4, -15, 3), (13, 5, -12, 7), (2, 6, -9, 4), (9, 7, -25, 10)]:
+            total = vehicles[vi].daily_rate * length
+            method = random.choice(vehicles[vi].agency.seller.payment_methods)
             b = Booking.objects.create(
                 vehicle=vehicles[vi], customer=customers[ci], pickup_agency=vehicles[vi].agency, return_agency=vehicles[vi].agency,
                 period=(now + timedelta(days=offset), now + timedelta(days=offset + length)), status=Booking.Status.CONFIRMED,
-                days=length, base_amount=vehicles[vi].daily_rate * length, extras_amount=0, discount_amount=0,
-                total_amount=vehicles[vi].daily_rate * length, deposit_amount=Decimal("100000"),
+                days=length, base_amount=total, extras_amount=0, discount_amount=0,
+                total_amount=total, deposit_amount=Decimal("100000"), payment_method=method, platform_fee=platform_fee(total),
             )
-            charge_booking(b, random.choice(["airtel_ok", "moov_ok", "card_ok"]))
+            if method != "cash":
+                charge_booking(b, f"{method}_ok")
+            services.start_rental(b, mileage=vehicles[vi].mileage, fuel_level=100, user=staff, handover_received=True)
+            Booking.objects.filter(pk=b.pk).update(created_at=now + timedelta(days=offset))
             b.payments.update(created_at=now + timedelta(days=offset))
-            services.start_rental(b, mileage=vehicles[vi].mileage, fuel_level=100, user=staff)
             services.complete_rental(b, mileage=vehicles[vi].mileage + 120 * length, fuel_level=80, user=staff)
-        Vehicle.objects.filter(pk=vehicles[13].pk).update(status=Vehicle.Status.MAINTENANCE)
+        Vehicle.objects.filter(pk=vehicles[13].pk).update(status=Vehicle.Status.MAINTENANCE)  # Hiace à l'atelier
         self.stdout.write(self.style.SUCCESS("Données de démo chargées."))
 
     def _book(self, vehicle, customer, start, end, extras):
         b = services.create_booking(vehicle=vehicle, customer=customer, start=start, end=end, extras=extras)
-        return services.pay_and_confirm(b, random.choice(["airtel_ok", "airtel_ok", "moov_ok", "card_ok"]))
+        method = random.choice(vehicle.agency.seller.payment_methods)
+        return services.pay_and_confirm(b, services.CASH_TOKEN if method == "cash" else f"{method}_ok")
+
+    def _demo_user(self, email, first, last):
+        User = get_user_model()
+        user, created = User.objects.get_or_create(username=email, defaults=dict(email=email, first_name=first, last_name=last))
+        if created:
+            user.set_unusable_password()
+            user.save()
+        return user
 
     def _staff(self):
         User = get_user_model()
         user = User.objects.filter(username="agent").first()
         if not user:
             password = os.environ.get("DEMO_AGENT_PASSWORD") or secrets.token_urlsafe(9)
-            user = User.objects.create_user("agent", "agent@example.com", password)
-            user.groups.add(Group.objects.get_or_create(name=AGENCY_GROUP)[0])
+            user = User.objects.create_user("agent", "agent@example.com", password, first_name="Loc'Auto", last_name="Libreville")
             if "DEMO_AGENT_PASSWORD" not in os.environ:
                 self.stdout.write(self.style.WARNING(f"Compte agence : agent / {password}"))
         return user

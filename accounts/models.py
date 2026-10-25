@@ -39,3 +39,14 @@ class Seller(models.Model):
     def payment_methods(self):
         methods = [("airtel", self.accepts_airtel), ("moov", self.accepts_moov), ("card", self.accepts_card), ("cash", self.accepts_cash)]
         return [m for m, ok in methods if ok]
+
+    LABELS = {"airtel": "Airtel Money", "moov": "Moov Money", "card": "carte", "cash": "espèces"}
+
+    @property
+    def payment_labels(self):
+        return [self.LABELS[m] for m in self.payment_methods]
+
+    @property
+    def whatsapp_link(self):
+        digits = "".join(c for c in (self.whatsapp or "") if c.isdigit())
+        return f"https://wa.me/{digits}" if digits else ""

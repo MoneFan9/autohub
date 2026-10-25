@@ -11,17 +11,22 @@
 <header class="site-header"><div class="wrap">
   <a class="logo" href="{% url 'home' %}"><span class="logo-mark"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg></span>AutoHub</a>
   <nav class="nav" aria-label="Navigation principale">
-    <a href="{% url 'home' %}"{% if current == 'home' or current == 'vehicle-detail' %} aria-current="page"{% endif %}>Location</a>
-    <a href="{% url 'used-cars' %}"{% if current == 'used-cars' %} aria-current="page"{% endif %}>Occasions</a>
-    {% if is_agency %}
-      <a href="{% url 'backoffice:dashboard' %}"{% if current == 'dashboard' %} aria-current="page"{% endif %}><span class="lg-only">Tableau de bord</span><span class="sm-only">Agence</span></a>
-      <a href="{% url 'backoffice:planning' %}"{% if current == 'planning' %} aria-current="page"{% endif %}>Planning</a>
+    <a href="{% url 'home' %}"{% if current == 'home' and not request.resolver_match.namespace or current == 'vehicle-detail' %} aria-current="page"{% endif %}>Location</a>
+    <a href="{% url 'used-cars' %}"{% if current == 'used-cars' or current == 'used-car-detail' %} aria-current="page"{% endif %}>Occasions</a>
+    {% if is_seller %}
+      <a href="{% url 'backoffice:dashboard' %}"{% if current == 'dashboard' %} aria-current="page"{% endif %}><span class="lg-only">Espace vendeur</span><span class="sm-only">Vendeur</span></a>
       {% if is_owner %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
+    {% elif user.is_authenticated %}
+      <a href="{% url 'accounts:become_seller' %}"{% if current == 'become_seller' %} aria-current="page"{% endif %} class="lg-only">Publier un véhicule</a>
+    {% endif %}
+    {% if user.is_authenticated %}
+      <a class="nav-cta" href="{% url 'accounts:home' %}"{% if current == 'home' and request.resolver_match.namespace == 'accounts' %} aria-current="page"{% endif %}><svg class="i" aria-hidden="true"><use href="#i-user"/></svg><span class="lg-only">Mon compte</span><span class="sm-only">Compte</span></a>
     {% else %}
-      <a class="nav-cta" href="{% url 'backoffice:login' %}"{% if current == 'login' %} aria-current="page"{% endif %}><svg class="i" aria-hidden="true"><use href="#i-user"/></svg>Espace agence</a>
+      <a href="{% url 'accounts:login' %}"{% if current == 'login' %} aria-current="page"{% endif %}>Connexion</a>
+      <a class="nav-cta" href="{% url 'accounts:signup' %}"{% if current == 'signup' %} aria-current="page"{% endif %}><svg class="i" aria-hidden="true"><use href="#i-user"/></svg><span class="lg-only">Créer un compte</span><span class="sm-only">S'inscrire</span></a>
     {% endif %}
   </nav>
-  {% if user.is_authenticated %}<form class="header-logout" method="post" action="{% url 'backoffice:logout' %}">{% csrf_token %}<button type="submit"><svg class="i" aria-hidden="true"><use href="#i-logout"/></svg>Déconnexion</button></form>{% endif %}
+  {% if user.is_authenticated %}<form class="header-logout" method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button type="submit"><svg class="i" aria-hidden="true"><use href="#i-logout"/></svg>Déconnexion</button></form>{% endif %}
 </div></header>
 {% endwith %}
 <main id="contenu">
@@ -31,6 +36,6 @@
 {% block content %}{% endblock %}
 </div>
 </main>
-<footer class="site-footer"><div class="wrap">AutoHub · location et vente de véhicules · <a href="/api/">API</a></div></footer>
+<footer class="site-footer"><div class="wrap">AutoHub met en relation particuliers et professionnels qui louent ou vendent un véhicule au Gabon. Chaque loueur fixe ses prix, remet les clés et encaisse ; AutoHub prélève {{ platform_fee_pct }} % de commission sur les locations. · <a href="{% url 'accounts:become_seller' %}">Publier un véhicule</a> · <a href="/api/">API</a></div></footer>
 {% block scripts %}{% endblock %}
 </body></html>

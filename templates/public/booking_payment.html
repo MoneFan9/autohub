@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% load cars %}
+{% block title %}Paiement {{ booking.reference }}{% endblock %}
+{% block content %}
+<section class="card confirm" aria-labelledby="pay-title">
+{% if booking.status == 'pending' %}
+  <div class="check pending"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg></div>
+  <h1 id="pay-title">Validez le paiement sur votre téléphone</h1>
+  <p class="muted">Une demande de <b>{{ booking.total_amount|fcfa }}</b> a été envoyée au <b class="num">{{ payment.payer_number }}</b> ({{ booking.payment_label }}).</p>
+  <ol class="setup">
+    <li>Ouvrez la notification {{ booking.payment_label }} ou composez le menu {% if booking.payment_method == 'airtel' %}Airtel Money{% else %}Moov Money{% endif %}.</li>
+    <li>Vérifiez le montant et le bénéficiaire AutoHub, puis saisissez votre code secret.</li>
+    <li>Revenez ici et touchez « J'ai validé le paiement ».</li>
+  </ol>
+  <p class="help">Le véhicule vous est réservé {{ hold_minutes }} minutes. Sans validation, la demande expire et le véhicule est libéré.</p>
+  <form method="post">{% csrf_token %}<button class="btn btn-lg btn-block" type="submit">J'ai validé le paiement</button></form>
+  <p class="muted small">Exemple de démonstration : aucun argent réel n'est débité. Un numéro finissant par 0000 simule un refus.</p>
+{% else %}
+  <div class="check failed"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg></div>
+  <h1 id="pay-title">Paiement non abouti</h1>
+  <p class="muted">{% if payment.error %}{{ payment.error }}{% else %}La demande de paiement a été refusée ou a expiré.{% endif %} La réservation {{ booking.reference }} est annulée et rien n'a été débité.</p>
+  <a class="btn btn-lg btn-block" href="{% url 'vehicle-detail' booking.vehicle.pk %}">Réessayer avec un autre moyen</a>
+{% endif %}
+</section>
+{% endblock %}

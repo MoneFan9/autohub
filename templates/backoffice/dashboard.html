@@ -1,31 +1,34 @@
 {% extends "base.html" %}{% load humanize cars %}
 {% block title %}Tableau de bord{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>Tableau de bord</h1><p class="muted">{% now "l j F Y" %}</p></div><div class="head-actions"><a class="btn btn-ghost" href="{% url 'backoffice:password' %}">Mot de passe</a><a class="btn btn-ghost" href="{% url 'backoffice:planning' %}"><svg class="i" aria-hidden="true"><use href="#i-cal"/></svg>Voir le planning</a></div></div>
-{% if needs_2fa %}<div class="alert info" role="status"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><div><b>Activez la double authentification.</b> Elle est obligatoire pour ouvrir l'admin. <a href="{% url 'backoffice:security' %}">Configurer maintenant</a></div></div>{% endif %}
+<div class="page-head"><div><h1>{% if is_platform_view %}Toute la plateforme{% else %}{{ my_seller.display_name }}{% endif %}</h1><p class="muted">{% now "l j F Y" %}</p></div><div class="head-actions">{% if my_seller %}<a class="btn" href="{% url 'backoffice:vehicle_new' %}">Ajouter un véhicule</a>{% endif %}</div></div>
+{% include "backoffice/_tabs.html" %}
+{% if needs_2fa %}<div class="alert info" role="status"><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg><div><b>Activez la double authentification.</b> Elle est obligatoire pour ouvrir l'admin. <a href="{% url 'accounts:security' %}">Configurer maintenant</a></div></div>{% endif %}
 <div class="kpis">
   <div class="card kpi"><b>{{ kpis.fleet }}</b><span>véhicules en flotte</span></div>
   <div class="card kpi"><b>{{ kpis.occupancy }} %</b><span>occupation actuelle</span></div>
-  <div class="card kpi"><b>{{ kpis.revenue_30d|fcfa }}</b><span>encaissé sur 30 jours</span></div>
+  {% if is_platform_view %}<div class="card kpi"><b>{{ kpis.fees_30d|fcfa }}</b><span>commissions sur 30 jours</span></div>{% else %}<div class="card kpi"><b>{{ kpis.net_30d|fcfa }}</b><span>gagné sur 30 jours, commission déduite</span></div>{% endif %}
   <div class="card kpi"><b>{{ kpis.active }}</b><span>locations en cours</span></div>
   <div class="card kpi"><b>{{ kpis.for_sale }}</b><span>véhicules en vente</span></div>
 </div>
+{% if not is_platform_view and kpis.fees_30d %}<p class="muted small money-line">Sur 30 jours : {{ kpis.to_pay_out|fcfa }} payés en ligne, à vous reverser · commission sur les espèces encaissées par vous : {{ kpis.fees_due|fcfa }} à régler à AutoHub.</p>{% endif %}
 <div class="fleet" aria-label="État de la flotte">{% for label, n in fleet_by_status %}<span class="badge">{{ label }} · {{ n }}</span>{% endfor %}</div>
 
 <div class="panels">
   <section class="card panel" aria-labelledby="dep"><h2 id="dep">Départs (48 h) <span class="badge">{{ departures|length }}</span></h2>
     <ul class="rows">{% for b in departures %}
       <li>
-        <div class="row-head"><div><b>{{ b.start|date:"D j, H:i" }}</b> · {{ b.customer }}<div class="muted small">{{ b.vehicle }} · {{ b.reference }}</div></div>{% with due=b.balance_due %}{% if due %}<span class="badge b-pending">À encaisser {{ due|add:b.deposit_amount|fcfa }}</span>{% else %}<span class="badge b-confirmed">Payée</span>{% endif %}</div>
+        <div class="row-head"><div><b>{{ b.start|date:"D j, H:i" }}</b> · {{ b.customer }}<div class="muted small">{{ b.vehicle }} · {{ b.reference }} · {{ b.customer.phone }}</div><div class="muted small">À recevoir : {% if due %}{{ due|fcfa }} en espèces + {% endif %}caution {{ b.deposit_amount|fcfa }}</div></div>{% with due=b.balance_due %}{% if due %}<span class="badge b-pending">Espèces : {{ due|add:b.deposit_amount|fcfa }}</span>{% else %}<span class="badge b-confirmed">Payée</span>{% endif %}</div>
         <details class="act"><summary class="btn btn-sm">Faire l'état des lieux de départ</summary>
           <form class="inspect" method="post" action="{% url 'backoffice:start' b.reference %}">{% csrf_token %}
             <div class="field"><label for="km-{{ b.pk }}">Km</label><input id="km-{{ b.pk }}" name="mileage" type="number" inputmode="numeric" value="{{ b.vehicle.mileage }}" required></div>
             <div class="field"><label for="fu-{{ b.pk }}">Carburant %</label><input id="fu-{{ b.pk }}" name="fuel_level" type="number" min="0" max="100" value="100" required></div>
             <div class="field wide"><label for="dm-{{ b.pk }}">Dommages constatés</label><input id="dm-{{ b.pk }}" name="damages" placeholder="Aucun"></div>
-            {% if due %}<label class="cash-check full"><input type="checkbox" name="cash_received" required> J'ai encaissé {{ due|fcfa }} + caution {{ b.deposit_amount|fcfa }} en espèces</label>{% endif %}
+            <p class="help full">Vérifiez le permis ({{ b.customer.license_number }}) et une pièce d'identité au nom de {{ b.customer }} avant de remettre les clés.</p>
+            <label class="cash-check full"><input type="checkbox" name="handover_received" required> J'ai reçu {% if due %}{{ due|fcfa }} en espèces et {% endif %}la caution de {{ b.deposit_amount|fcfa }}</label>
             <button class="btn btn-sm" type="submit">Valider le départ</button>
           </form>
-          <form method="post" action="{% url 'backoffice:cancel' b.reference %}" onsubmit="return confirm('Annuler la réservation {{ b.reference }} et rembourser le client ?')">{% csrf_token %}<button class="btn btn-sm btn-danger" type="submit">Annuler la réservation</button></form>
+          <form method="post" action="{% url 'backoffice:cancel' b.reference %}" onsubmit="return confirm('Annuler la réservation {{ b.reference }}{% if b.payment_method != 'cash' %} et rembourser le client{% endif %} ?')">{% csrf_token %}<button class="btn btn-sm btn-danger" type="submit">Annuler la réservation</button></form>
         </details>{% endwith %}
       </li>
     {% empty %}<li class="muted">Aucun départ dans les 48 prochaines heures.</li>{% endfor %}</ul>
@@ -49,7 +52,7 @@
 
 <section class="card panel panel-spaced" aria-labelledby="rec"><h2 id="rec">Dernières réservations</h2>
 <div class="table-wrap"><table class="table">
-<thead><tr><th>Référence</th><th>Client</th><th>Véhicule</th><th>Période</th><th class="amount">Total</th><th>Statut</th></tr></thead>
-<tbody>{% for b in recent %}<tr><td>{% if is_owner %}<a class="num" href="{% url 'admin:rentals_booking_change' b.pk %}">{{ b.reference }}</a>{% else %}<span class="num">{{ b.reference }}</span>{% endif %}</td><td>{{ b.customer }}</td><td>{{ b.vehicle.title }}</td><td class="num">{{ b.start|date:"d/m" }} → {{ b.end|date:"d/m" }}</td><td class="amount">{{ b.total_amount|fcfa }}</td><td><span class="badge b-{{ b.status }}">{{ b.get_status_display }}</span></td></tr>{% endfor %}</tbody>
+<thead><tr><th>Référence</th><th>Client</th><th>Véhicule</th><th>Période</th><th>Paiement</th><th class="amount">Total</th><th class="amount">Commission</th><th>Statut</th></tr></thead>
+<tbody>{% for b in recent %}<tr><td>{% if is_owner %}<a class="num" href="{% url 'admin:rentals_booking_change' b.pk %}">{{ b.reference }}</a>{% else %}<span class="num">{{ b.reference }}</span>{% endif %}</td><td>{{ b.customer }}</td><td>{{ b.vehicle.title }}</td><td class="num">{{ b.start|date:"d/m" }} → {{ b.end|date:"d/m" }}</td><td>{{ b.payment_label }}</td><td class="amount">{{ b.total_amount|fcfa }}</td><td class="amount">{{ b.platform_fee|fcfa }}</td><td><span class="badge b-{{ b.status }}">{{ b.get_status_display }}</span></td></tr>{% endfor %}</tbody>
 </table></div></section>
 {% endblock %}
