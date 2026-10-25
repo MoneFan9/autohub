@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
@@ -7,7 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def _db_from_url(url):
-    u = urlparse(url)
+    # Tolère une valeur collée avec espaces, guillemets ou la commande « psql '…' » copiée depuis Neon.
+    match = re.search(r"postgres(?:ql)?://[^\s'\"]+", url)
+    u = urlparse(match.group(0) if match else url.strip())
     options = {k: v[0] for k, v in parse_qs(u.query).items()}
     return {
         "ENGINE": "django.db.backends.postgresql",

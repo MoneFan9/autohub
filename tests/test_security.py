@@ -83,3 +83,12 @@ def test_many_usernames_from_one_ip_lock_the_ip(client, agent):
         client.post("/compte/connexion/", {"username": f"inconnu{i}", "password": "faux"}, REMOTE_ADDR="10.0.2.1")
     r = client.post("/compte/connexion/", {"username": "agent", "password": "Secret-123"}, REMOTE_ADDR="10.0.2.1")
     assert r.status_code == 429
+
+
+def test_database_url_tolerates_pasted_command():
+    from config.settings import _db_from_url
+
+    for raw in [" postgresql://u:p@ep-x.neon.tech/neondb?sslmode=require\n",
+                "psql 'postgresql://u:p@ep-x.neon.tech/neondb?sslmode=require'"]:
+        db = _db_from_url(raw)
+        assert (db["HOST"], db["NAME"], db["OPTIONS"]) == ("ep-x.neon.tech", "neondb", {"sslmode": "require"})
