@@ -1,0 +1,13 @@
+{
+  "name": "AutoHub · location et vente de voitures au Gabon",
+  "short_name": "AutoHub",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f7fb",
+  "theme_color": "#1d4ed8",
+  "lang": "fr",
+  "icons": [
+    { "src": "/static/img/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/static/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

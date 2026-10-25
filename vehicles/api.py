@@ -13,12 +13,16 @@ class AgencySerializer(serializers.ModelSerializer):
 
 class VehicleSerializer(serializers.ModelSerializer):
     agency = AgencySerializer(read_only=True)
+    photos = serializers.SerializerMethodField()
+
+    def get_photos(self, vehicle):
+        return [{"url": p.image.url, "kind": p.kind} for p in vehicle.photos.all()]
 
     class Meta:
         model = Vehicle
         fields = [
             "id", "brand", "model", "year", "mileage", "fuel", "transmission", "category",
-            "seats", "color", "description", "photo", "agency", "status",
+            "seats", "color", "description", "photos", "video_url", "agency", "status",
             "is_rentable", "is_for_sale", "daily_rate", "sale_price",
         ]
 
@@ -47,7 +51,7 @@ class VehicleViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_class = VehicleFilter
 
     def get_queryset(self):
-        qs = Vehicle.objects.exclude(status=Vehicle.Status.SOLD).select_related("agency")
+        qs = Vehicle.objects.exclude(status=Vehicle.Status.SOLD).select_related("agency").prefetch_related("photos")
         start, end = self.request.query_params.get("start"), self.request.query_params.get("end")
         if start and end:
             f = serializers.DateTimeField()

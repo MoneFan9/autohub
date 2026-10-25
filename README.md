@@ -10,6 +10,10 @@ Montants en francs CFA (XAF, sans centimes), fuseau Africa/Libreville. Chaque lo
 
 La caution est toujours remise au loueur au départ (case « J'ai reçu… » obligatoire) et rendue au retour sans dommage. Les paiements sont simulés (`FakeProvider`) tant qu'aucun agrégateur n'est branché : un numéro finissant par 0000 ou la carte 4000 0000 0000 0002 simulent un refus.
 
+Annonces avec plusieurs photos guidées (extérieur, intérieur, tableau de bord, coffre, moteur) et vidéo de présentation, indisponibilités par véhicule, e-mails (confirmation, annulation, rappel la veille, mot de passe oublié), pages légales (CGU, confidentialité, annulation, mentions légales), signalement d'annonce, suppression de compte, aperçus de partage WhatsApp/Facebook et plan du site.
+
+**Mise en ligne réelle : voir [docs/LANCEMENT.md](docs/LANCEMENT.md)** (variables `ONLINE_PAYMENTS`, `DEMO_DATA`, e-mail, stockage des photos, statut juridique, visibilité).
+
 ## Lancer
 
 ```bash
@@ -30,6 +34,8 @@ python manage.py runserver
 | `/compte/` | inscription, connexion, mes réservations, devenir vendeur |
 | `/espace-vendeur/` | tableau de bord du loueur : gains, commission, départs, retours, états des lieux |
 | `/espace-vendeur/vehicules/`, `/profil/`, `/planning/` | ses véhicules, ses moyens de paiement et lieux de remise, son planning |
+| `/infos/cgu/`, `/infos/confidentialite/`, `/infos/annulation/`, `/infos/mentions-legales/` | pages légales |
+| `/taches/quotidiennes/` | rappels et expirations (Vercel Cron, `Authorization: Bearer $CRON_SECRET`) |
 | `/api/` | API REST (catalogue, devis public ; réservation pour un membre connecté ; actions du loueur sur ses réservations) |
 | `/admin/` | administration complète |
 

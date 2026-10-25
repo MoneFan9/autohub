@@ -1,0 +1,6 @@
+{% autoescape off %}Bonjour,
+
+La réservation {{ b.reference }} ({{ b.vehicle.title }}, du {{ b.start|date:"j F Y, H:i" }} au {{ b.end|date:"j F Y, H:i" }}) a été annulée{% if by_seller %} par le loueur{% endif %}.
+{% if b.payment_method and b.payment_method != "cash" %}Le montant payé en ligne est remboursé sur le moyen de paiement utilisé.{% endif %}
+
+— {{ site_url }}{% endautoescape %}

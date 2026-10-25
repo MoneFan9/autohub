@@ -7,7 +7,7 @@
 <div class="cards">
 {% for v in vehicles %}
   <a class="card vehicle-card" href="{% url 'used-car-detail' v.pk %}">
-    {% include "_car.html" with badge=True %}
+    {% include "_cover.html" %}
     <div class="body">
       <div class="meta"><span class="where"><svg class="i" aria-hidden="true"><use href="#i-pin"/></svg>{{ v.agency.city }}</span><span>{{ v.year }}</span></div>
       <h3>{{ v.title }}</h3>

@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.contrib.postgres",
     "django.contrib.humanize",
+    "django.contrib.sitemaps",
     "rest_framework",
     "django_filters",
     "django_otp",
@@ -48,6 +49,7 @@ INSTALLED_APPS = [
     "rentals",
     "payments",
     "backoffice",
+    "pages",
 ]
 
 MIDDLEWARE = [
@@ -125,8 +127,19 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 # Pas de collectstatic en serverless : WhiteNoise sert depuis les apps installées.
 WHITENOISE_USE_FINDERS = True
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+# Photos des véhicules : Vercel Blob en ligne (le disque d'une fonction serverless n'est pas persistant),
+# dossier local sinon. Le jeton est ajouté au projet quand on y connecte un magasin Blob.
+BLOB_READ_WRITE_TOKEN = os.environ.get("BLOB_READ_WRITE_TOKEN", "")
+STORAGES = {
+    "default": {"BACKEND": "vehicles.storage.VercelBlobStorage" if BLOB_READ_WRITE_TOKEN else "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+# En ligne sans magasin Blob, l'envoi de photos est désactivé (rien ne serait conservé).
+MEDIA_UPLOADS_ENABLED = bool(BLOB_READ_WRITE_TOKEN) or not VERCEL_ENV
+VEHICLE_MAX_PHOTOS = 20
+PHOTO_MAX_BYTES = 4 * 1024 * 1024
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "accounts:login"
@@ -153,6 +166,36 @@ PENDING_PAYMENT_MINUTES = 15
 
 # Paiement : "fake" (simulation) tant qu'un agrégateur Mobile Money n'est pas branché.
 PAYMENT_PROVIDER = os.environ.get("PAYMENT_PROVIDER", "fake")
+# Paiements en ligne : "demo" (simulés, bandeau visible), "off" (espèces à la remise des clés uniquement),
+# "live" (agrégateur réel branché). Ne jamais lancer auprès du public en "demo".
+ONLINE_PAYMENTS = os.environ.get("ONLINE_PAYMENTS", "demo")
+# Le client peut annuler en ligne jusqu'à ce délai avant le départ (heures).
+CUSTOMER_CANCEL_HOURS = 24
+
+# Éditeur du site (mentions légales, contact). À renseigner dans les variables d'environnement.
+SITE_NAME = "AutoHub"
+SITE_URL = os.environ.get("SITE_URL", "https://autohub-five.vercel.app").rstrip("/")
+OPERATOR_NAME = os.environ.get("OPERATOR_NAME", "monefan9")
+CONTACT_EMAIL = os.environ.get("CONTACT_EMAIL", "lomep610@gmail.com")
+TERMS_VERSION = "2026-10"
+
+# E-mails (mot de passe oublié, notifications). SMTP de n'importe quel fournisseur (Brevo, Resend, Gmail…) ;
+# sans configuration, les e-mails sont écrits dans le journal.
+if os.environ.get("EMAIL_HOST"):
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = os.environ["EMAIL_HOST"]
+    EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+    EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+    EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+    EMAIL_USE_TLS = os.environ.get("EMAIL_USE_TLS", "1") == "1"
+    EMAIL_TIMEOUT = 10
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "AutoHub <no-reply@autohub.ga>")
+# Annonces fictives chargées au démarrage si la base est vide (démonstration). 0 pour le lancement réel.
+DEMO_DATA = os.environ.get("DEMO_DATA", "1") == "1"
+# Tâches planifiées (rappels, expirations) déclenchées par Vercel Cron avec ce secret.
+CRON_SECRET = os.environ.get("CRON_SECRET", "")
 
 # Règles métier location
 RENTAL_MIN_DRIVER_AGE = 21

@@ -1,0 +1,2 @@
+<div class="field{% if f.errors %} has-error{% endif %}"><label class="check">{{ f }} <span>{{ f.label }}</span></label>
+  <span class="help">Lire les <a href="{% url 'legal' 'cgu' %}" target="_blank" rel="noopener">conditions générales</a> et la <a href="{% url 'legal' 'confidentialite' %}" target="_blank" rel="noopener">politique de confidentialité</a>.</span>{{ f.errors }}</div>

@@ -37,6 +37,9 @@ class Seller(models.Model):
 
     @property
     def payment_methods(self):
+        if settings.ONLINE_PAYMENTS == "off":
+            # Sans paiement en ligne, tout se règle à la remise des clés.
+            return ["cash"]
         methods = [("airtel", self.accepts_airtel), ("moov", self.accepts_moov), ("card", self.accepts_card), ("cash", self.accepts_cash)]
         return [m for m, ok in methods if ok]
 
@@ -50,3 +53,20 @@ class Seller(models.Model):
     def whatsapp_link(self):
         digits = "".join(c for c in (self.whatsapp or "") if c.isdigit())
         return f"https://wa.me/{digits}" if digits else ""
+
+
+class TermsAcceptance(models.Model):
+    """Trace de l'acceptation des conditions (preuve en cas de litige)."""
+
+    class Document(models.TextChoices):
+        TERMS = "terms", "Conditions générales d'utilisation et confidentialité"
+        SELLER = "seller", "Engagements du loueur / vendeur"
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="acceptances")
+    document = models.CharField(max_length=10, choices=Document.choices)
+    version = models.CharField(max_length=20)
+    accepted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "acceptation des conditions"
+        verbose_name_plural = "acceptations des conditions"

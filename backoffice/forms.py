@@ -8,7 +8,7 @@ class VehicleForm(forms.ModelForm):
         model = Vehicle
         fields = [
             "brand", "model", "year", "category", "fuel", "transmission", "seats", "color", "mileage", "plate",
-            "description", "agency", "status", "is_rentable", "daily_rate", "is_for_sale", "sale_price",
+            "description", "video_url", "agency", "status", "is_rentable", "daily_rate", "is_for_sale", "sale_price",
         ]
         labels = {
             "agency": "Lieu de remise", "status": "Disponibilité", "is_rentable": "Je le propose à la location",
@@ -34,3 +34,13 @@ class VehicleForm(forms.ModelForm):
         if data.get("is_for_sale") and not data.get("sale_price"):
             self.add_error("sale_price", "Indiquez le prix de vente.")
         return data
+
+
+class BlockForm(forms.Form):
+    start = forms.DateTimeField(label="Du", widget=forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"), input_formats=["%Y-%m-%dT%H:%M"])
+    end = forms.DateTimeField(label="Au", widget=forms.DateTimeInput(attrs={"type": "datetime-local"}, format="%Y-%m-%dT%H:%M"), input_formats=["%Y-%m-%dT%H:%M"])
+    reason = forms.CharField(label="Motif (pour vous)", max_length=120, required=False, widget=forms.TextInput(attrs={"placeholder": "Voyage, usage personnel…"}))
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("label_suffix", "")
+        super().__init__(*args, **kwargs)

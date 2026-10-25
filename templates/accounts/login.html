@@ -6,7 +6,7 @@
   {% if form.non_field_errors %}<div class="alert error" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>
   {% elif next %}<div class="alert info">Connectez-vous pour accéder à cette page.</div>{% endif %}
   <div class="field"><label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>{{ form.username }}{{ form.username.errors }}</div>
-  <div class="field"><label for="{{ form.password.id_for_label }}">Mot de passe</label>{{ form.password }}{{ form.password.errors }}</div>
+  <div class="field"><label for="{{ form.password.id_for_label }}">Mot de passe</label>{{ form.password }}{{ form.password.errors }}<a class="small" href="{% url 'accounts:password_reset' %}">Mot de passe oublié ?</a></div>
   <input type="hidden" name="next" value="{{ next }}">
   <button class="btn btn-lg btn-block" type="submit">Se connecter</button>
   <p class="muted small center">Pas encore de compte ? <a href="{% url 'accounts:signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Créer un compte</a></p>

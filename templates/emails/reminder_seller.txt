@@ -1,0 +1,7 @@
+{% load cars %}{% autoescape off %}Bonjour {{ seller.display_name }},
+
+Rappel : remise des clés de votre {{ b.vehicle.title }} le {{ b.start|date:"l j F à H:i" }} ({{ b.reference }}).
+Client : {{ customer }} — {{ customer.phone }}
+À recevoir : {% if b.balance_due %}{{ b.balance_due|fcfa }} en espèces + {% endif %}caution de {{ b.deposit_amount|fcfa }}.
+
+— {{ site_url }}{% endautoescape %}

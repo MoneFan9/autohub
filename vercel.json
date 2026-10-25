@@ -15,6 +15,9 @@
       "dest": "config/wsgi.py"
     }
   ],
+  "crons": [
+    { "path": "/taches/quotidiennes/", "schedule": "0 17 * * *" }
+  ],
   "regions": [
     "fra1"
   ]

@@ -1,0 +1,9 @@
+{% load cars %}{% with c=v.cover %}
+<meta name="description" content="{{ v.title }} {{ v.year }}, {{ v.get_transmission_display|lower }}, {{ v.get_fuel_display|lower }}, {{ v.agency.city }}. {% if kind == 'sale' %}À vendre {{ v.sale_price|fcfa }}{% else %}À louer dès {{ v.daily_rate|fcfa }} par jour{% endif %} sur AutoHub.">
+<meta property="og:type" content="product">
+<meta property="og:title" content="{{ v.title }} {{ v.year }} · {% if kind == 'sale' %}{{ v.sale_price|fcfa }}{% else %}{{ v.daily_rate|fcfa }}/jour{% endif %} · {{ v.agency.city }}">
+<meta property="og:description" content="{% if kind == 'sale' %}À vendre{% else %}À louer{% endif %} par {{ v.agency.seller.display_name|default:'AutoHub' }} sur AutoHub. {{ v.mileage }} km, {{ v.get_transmission_display|lower }}.">
+<meta property="og:image" content="{% if c %}{{ c.image.url }}{% else %}{{ site_url }}/static/img/og.png{% endif %}">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Car", "name": "{{ v.title|escapejs }}", "brand": {"@type": "Brand", "name": "{{ v.brand|escapejs }}"}, "model": "{{ v.model|escapejs }}", "vehicleModelDate": "{{ v.year }}", "mileageFromOdometer": {"@type": "QuantitativeValue", "value": {{ v.mileage }}, "unitCode": "KMT"}, "fuelType": "{{ v.get_fuel_display|escapejs }}", "vehicleTransmission": "{{ v.get_transmission_display|escapejs }}", "seatingCapacity": {{ v.seats }}{% if c %}, "image": "{{ c.image.url|escapejs }}"{% endif %}, "offers": {"@type": "Offer", "priceCurrency": "XAF", "price": "{% if kind == 'sale' %}{{ v.sale_price|floatformat:'0u' }}{% else %}{{ v.daily_rate|floatformat:'0u' }}{% endif %}", "availability": "https://schema.org/InStock", "areaServed": "{{ v.agency.city|escapejs }}, Gabon"}}</script>
+{% endwith %}

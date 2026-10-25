@@ -134,7 +134,7 @@ class BookingViewSet(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.
 
     def _transition(self, request, fn, with_inspection=True, drop=()):
         booking = self.get_object()
-        kwargs = {}
+        kwargs = {} if with_inspection else {"by": request.user}
         if with_inspection:
             s = InspectionSerializer(data=request.data)
             s.is_valid(raise_exception=True)

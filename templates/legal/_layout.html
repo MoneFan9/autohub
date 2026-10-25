@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="legal-layout">
+  <nav class="legal-nav" aria-label="Informations légales">{% for s, t in pages.items %}<a href="{% url 'legal' s %}"{% if s == slug %} aria-current="page"{% endif %}>{{ t }}</a>{% endfor %}</nav>
+  <article class="card legal">
+    <h1>{{ title }}</h1>
+    <p class="muted small">Version du {% block version %}25 octobre 2026{% endblock %}</p>
+    {% block body %}{% endblock %}
+  </article>
+</div>
+{% endblock %}

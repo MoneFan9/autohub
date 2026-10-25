@@ -116,7 +116,7 @@ def test_confirmation_not_visible_to_others(client, vehicle, customer, member, t
 
 def test_member_sees_and_cancels_own_booking(client, member, vehicle, t0):
     client.force_login(member)
-    _web_booking(client, vehicle, t0, payment_method="cash")
+    _web_booking(client, vehicle, t0 + timedelta(days=2), payment_method="cash")
     b = Booking.objects.get()
     assert b.reference in client.get("/compte/").content.decode()
     client.post(f"/compte/reservations/{b.reference}/annuler/")
@@ -126,11 +126,12 @@ def test_member_sees_and_cancels_own_booking(client, member, vehicle, t0):
 
 def test_signup_then_become_seller_and_publish(client, db):
     r = client.post("/compte/inscription/", {"first_name": "Awa", "last_name": "Mba", "email": "Awa@Example.com",
-                                             "password1": "Un-mot-de-passe-1", "password2": "Un-mot-de-passe-1"})
+                                             "password1": "Un-mot-de-passe-1", "password2": "Un-mot-de-passe-1",
+                                             "accept_terms": "on"})
     assert r.status_code == 302 and r["Location"] == "/compte/"
     r = client.post("/compte/devenir-vendeur/", {
         "s-display_name": "Awa M.", "s-kind": "individual", "s-city": "Libreville", "s-phone": "+241 07 11 22 33",
-        "s-accepts_cash": "on", "l-name": "Domicile", "l-city": "Libreville", "l-address": "Quartier Louis",
+        "s-accepts_cash": "on", "s-accept_terms": "on", "l-name": "Domicile", "l-city": "Libreville", "l-address": "Quartier Louis",
     })
     assert r.status_code == 302 and r["Location"] == "/espace-vendeur/vehicules/nouveau/"
     seller = Seller.objects.get(display_name="Awa M.")

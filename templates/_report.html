@@ -1,0 +1,10 @@
+<details class="report"{% if report_form.errors %} open{% endif %}>
+  <summary class="muted small">Signaler cette annonce</summary>
+  <form method="post" action="{% url 'report-vehicle' v.pk %}" novalidate>{% csrf_token %}
+    {% include "_field.html" with f=report_form.reason %}
+    {% include "_field.html" with f=report_form.message %}
+    {% if not user.is_authenticated %}{% include "_field.html" with f=report_form.contact %}{% endif %}
+    <div class="hp" aria-hidden="true"><label>Ne pas remplir <input name="website" tabindex="-1" autocomplete="off"></label></div>
+    <button class="btn btn-sm btn-ghost" type="submit">Envoyer le signalement</button>
+  </form>
+</details>

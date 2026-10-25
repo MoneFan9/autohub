@@ -18,7 +18,8 @@ def run():
             call_command("ensure_owner", verbosity=0)
             from vehicles.models import Vehicle
 
-            if not Vehicle.objects.exists():
+            # DEMO_DATA=0 au lancement réel : une base vide le reste.
+            if settings.DEMO_DATA and not Vehicle.objects.exists():
                 call_command("seed_demo", verbosity=0)
         finally:
             cur.execute("SELECT pg_advisory_unlock(%s)", [LOCK_ID])

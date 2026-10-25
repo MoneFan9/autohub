@@ -1,0 +1,32 @@
+{% extends "legal/_layout.html" %}
+{% block body %}
+<h2>Annulation par le client</h2>
+<ul>
+  <li>Jusqu'à {{ cancel_hours|default:24 }} heures avant le départ : annulation gratuite depuis « Mon compte ». Ce qui a été payé en ligne est remboursé intégralement sur le moyen de paiement utilisé.</li>
+  <li>Moins de {{ cancel_hours|default:24 }} heures avant le départ : contactez le loueur. Il peut accepter d'annuler, avec ou sans remboursement selon ce que vous convenez ensemble.</li>
+  <li>Si vous ne vous présentez pas, la location est due.</li>
+</ul>
+
+<h2>Annulation par le loueur</h2>
+<p>Le loueur qui ne peut pas honorer une réservation l'annule au plus tôt depuis son espace : le client est prévenu par e-mail et intégralement remboursé de ce qu'il a payé en ligne. Des annulations répétées peuvent entraîner la suspension du compte loueur.</p>
+
+<h2>Caution</h2>
+<ul>
+  <li>Montant : 3 jours de location, 100 000 FCFA minimum, affiché avant la réservation.</li>
+  <li>Elle est remise au loueur au départ (le loueur confirme sa réception sur la plateforme) et rendue au retour si l'état des lieux ne relève aucun dommage nouveau.</li>
+  <li>En cas de dommage, le loueur le note sur l'état des lieux de retour, avec photos, et peut retenir sur la caution le coût réel et justifié de la réparation (devis ou facture), dans la limite de la caution.</li>
+</ul>
+
+<h2>États des lieux</h2>
+<p>Au départ et au retour, le loueur et le client relèvent ensemble le kilométrage, le niveau de carburant et les dommages visibles. Prenez des photos des quatre côtés, de l'intérieur et du compteur : elles font foi en cas de désaccord.</p>
+
+<h2>Litiges</h2>
+<ol>
+  <li>Parlez-en d'abord directement avec l'autre partie : la plupart des désaccords se règlent ainsi.</li>
+  <li>À défaut, écrivez à AutoHub{% if contact_email %} (<a href="mailto:{{ contact_email }}">{{ contact_email }}</a>){% endif %} avec la référence de la réservation, les états des lieux et vos photos. AutoHub examine les éléments et propose une solution, sans pouvoir l'imposer.</li>
+  <li>En dernier recours, les tribunaux compétents de Libreville.</li>
+</ol>
+
+<h2>Ventes de véhicules d'occasion</h2>
+<p>Les ventes se concluent directement entre acheteur et vendeur, sans commission. Voyez le véhicule, essayez-le, vérifiez que le nom sur la carte grise est celui du vendeur et faites établir un certificat de cession. Ne payez jamais d'acompte à distance.</p>
+{% endblock %}

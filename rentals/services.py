@@ -6,9 +6,9 @@ from django.utils import timezone
 from psycopg.types.range import Range
 
 from payments import services as payment_services
-from vehicles.models import Vehicle
+from vehicles.models import Vehicle, VehicleBlock
 
-from . import pricing
+from . import notifications, pricing
 from .models import Booking, Inspection
 
 
@@ -45,6 +45,8 @@ def create_booking(*, vehicle, customer, start, end, pickup_agency=None, return_
     vehicle = Vehicle.objects.select_for_update().get(pk=vehicle.pk)
     if not Vehicle.objects.rentable().filter(pk=vehicle.pk).exists():
         raise VehicleUnavailable("Ce véhicule n'est pas proposé à la location.")
+    if VehicleBlock.objects.filter(vehicle=vehicle, period__overlap=Range(start, end, "[)")).exists():
+        raise VehicleUnavailable("Le propriétaire n'est pas disponible sur cette période.")
     check_driver(customer, start.date())
     if return_agency is not None and return_agency.seller_id != vehicle.agency.seller_id:
         raise BookingError("Le lieu de retour doit appartenir au même loueur.")
@@ -86,6 +88,7 @@ def _confirm(booking, method):
     booking.platform_fee = payment_services.platform_fee(booking.total_amount)
     booking.status = Booking.Status.CONFIRMED
     booking.save(update_fields=["payment_method", "platform_fee", "status", "updated_at"])
+    transaction.on_commit(lambda: notifications.booking_confirmed(booking))
     return booking
 
 
@@ -162,10 +165,39 @@ def complete_rental(booking, *, mileage, fuel_level, damages="", user=None):
 
 
 @transaction.atomic
-def cancel_booking(booking):
+def cancel_booking(booking, by=None):
+    """Annulation (client, loueur ou plateforme) : remboursement de ce qui a été payé en ligne."""
     _require(booking, Booking.Status.PENDING, Booking.Status.CONFIRMED)
-    if booking.status == Booking.Status.CONFIRMED:
+    was_confirmed = booking.status == Booking.Status.CONFIRMED
+    if was_confirmed:
         payment_services.refund_booking(booking)
     booking.status = Booking.Status.CANCELLED
     booking.save(update_fields=["status", "updated_at"])
+    if was_confirmed:
+        transaction.on_commit(lambda: notifications.booking_cancelled(booking, by))
     return booking
+
+
+def customer_can_cancel(booking, now=None):
+    """Le client annule seul jusqu'à CUSTOMER_CANCEL_HOURS avant le départ ; ensuite il voit avec le loueur."""
+    now = now or timezone.now()
+    return booking.status in (Booking.Status.PENDING, Booking.Status.CONFIRMED) and (
+        booking.status == Booking.Status.PENDING
+        or booking.start - now >= timedelta(hours=settings.CUSTOMER_CANCEL_HOURS)
+    )
+
+
+def send_departure_reminders(now=None):
+    """Rappel la veille : départs confirmés dans les 24 à 48 prochaines heures (tâche quotidienne)."""
+    now = now or timezone.now()
+    due = Booking.objects.filter(
+        status=Booking.Status.CONFIRMED, reminder_sent_at__isnull=True,
+        period__startswith__gte=now, period__startswith__lt=now + timedelta(hours=48),
+    ).select_related("vehicle__agency__seller__user", "customer__user", "pickup_agency")
+    count = 0
+    for booking in due:
+        notifications.departure_reminder(booking)
+        booking.reminder_sent_at = now
+        booking.save(update_fields=["reminder_sent_at"])
+        count += 1
+    return count

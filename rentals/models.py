@@ -62,6 +62,7 @@ class Booking(models.Model):
     deposit_amount = models.DecimalField("caution", max_digits=10, decimal_places=2)
     payment_method = models.CharField("moyen de paiement", max_length=10, blank=True)
     platform_fee = models.DecimalField("commission plateforme", max_digits=10, decimal_places=2, default=0)
+    reminder_sent_at = models.DateTimeField("rappel envoyé le", null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

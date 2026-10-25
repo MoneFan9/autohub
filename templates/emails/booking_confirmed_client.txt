@@ -1,0 +1,16 @@
+{% load cars %}{% autoescape off %}Bonjour {{ customer.first_name }},
+
+Votre réservation {{ b.reference }} est confirmée.
+
+Véhicule : {{ b.vehicle.title }}
+Départ : {{ b.start|date:"l j F Y, H:i" }} — {{ b.pickup_agency.name }}, {{ b.pickup_agency.address }}, {{ b.pickup_agency.city }}
+Retour : {{ b.end|date:"l j F Y, H:i" }} — {{ b.return_agency.name }}
+Total : {{ b.total_amount|fcfa }}{% if b.balance_due %}, à régler en espèces au loueur au départ{% else %}, payé ({{ b.payment_label }}){% endif %}
+Caution, remise au loueur au départ : {{ b.deposit_amount|fcfa }}
+
+Le jour du départ, apportez votre permis de conduire et une pièce d'identité.
+Loueur : {{ seller.display_name|default:"AutoHub" }}{% if seller.phone %} — {{ seller.phone }}{% endif %}
+
+Vos réservations : {{ account_url }}
+
+— {{ site_url }}{% endautoescape %}

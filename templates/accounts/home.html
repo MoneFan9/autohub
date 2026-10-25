@@ -23,11 +23,12 @@
   <div class="row-actions">
     {% if b.status == 'pending' %}<a class="btn btn-sm" href="{% url 'booking-payment' b.reference %}">Finaliser le paiement</a>{% endif %}
     {% if b.status == 'confirmed' %}<a class="btn btn-sm btn-ghost" href="{% url 'booking-confirmation' b.reference %}">Voir le récapitulatif</a>{% endif %}
-    {% if b.status == 'pending' or b.status == 'confirmed' %}{% if b.start > now %}<form method="post" action="{% url 'accounts:cancel' b.reference %}" onsubmit="return confirm('Annuler la réservation {{ b.reference }} ?')">{% csrf_token %}<button class="btn btn-sm btn-danger" type="submit">Annuler</button></form>{% endif %}{% endif %}
+    {% if b.can_cancel %}<form method="post" action="{% url 'accounts:cancel' b.reference %}" onsubmit="return confirm('Annuler la réservation {{ b.reference }} ?')">{% csrf_token %}<button class="btn btn-sm btn-danger" type="submit">Annuler</button></form>{% elif b.status == 'confirmed' %}<span class="muted small">Moins de {{ cancel_hours }} h avant le départ : pour annuler, contactez le loueur.</span>{% endif %}
   </div></li>
 {% endfor %}</ul>
 {% else %}
 <div class="empty"><h2>Aucune réservation pour l'instant</h2><p>Choisissez vos dates : seuls les véhicules libres s'affichent, avec le prix total.</p><a class="btn" href="{% url 'home' %}">Trouver une voiture</a></div>
 {% endif %}
 </section>
+<p class="muted small panel-spaced"><a href="{% url 'accounts:delete' %}">Supprimer mon compte</a> · Vos droits sur vos données : <a href="{% url 'legal' 'confidentialite' %}">politique de confidentialité</a></p>
 {% endblock %}

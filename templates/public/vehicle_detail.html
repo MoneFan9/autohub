@@ -1,11 +1,12 @@
 {% extends "base.html" %}{% load humanize cars %}
-{% block title %}{{ vehicle.title }}{% endblock %}
+{% block title %}{{ vehicle.title }} à louer à {{ vehicle.agency.city }}{% endblock %}
+{% block meta %}{% include "_vehicle_meta.html" with v=vehicle kind="rent" %}{% endblock %}
 {% block body_class %}has-paybar{% endblock %}
 {% block content %}
 <a class="back" href="{% url 'home' %}{% if form.start.value %}?start={{ form.start.value|urlencode }}&end={{ form.end.value|urlencode }}{% endif %}"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg>Retour aux résultats</a>
 <div class="detail">
   <div>
-    {% include "_car.html" with v=vehicle badge=True %}
+    {% include "_gallery.html" with v=vehicle %}
     <h1 class="detail-title">{{ vehicle.title }}</h1>
     <p class="muted">{{ vehicle.get_category_display }} · {{ vehicle.year }}{% if vehicle.color %} · {{ vehicle.color }}{% endif %}</p>
     <div class="facts">
@@ -18,6 +19,7 @@
     </div>
     {% if vehicle.description %}<p>{{ vehicle.description }}</p>{% endif %}
     {% include "public/_seller.html" %}
+    {% include "_share.html" with share_text=vehicle.title|add:" à louer sur AutoHub" %}
     {% if vehicle.is_for_sale %}<div class="alert info">Ce véhicule est aussi en vente à {{ vehicle.sale_price|fcfa }}. <a href="{% url 'used-car-detail' vehicle.pk %}">Voir l'annonce</a></div>{% endif %}
 
     <form id="booking" method="post" novalidate>{% csrf_token %}
@@ -62,6 +64,7 @@
         </fieldset>
       </div>
     </form>
+    {% include "_report.html" with v=vehicle %}
   </div>
 
   <aside class="card summary-card" aria-labelledby="sum-title">

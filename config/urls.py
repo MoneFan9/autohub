@@ -1,11 +1,14 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
 from django.views.generic import RedirectView
 from rest_framework.routers import DefaultRouter
 
 from rentals.api import BookingViewSet, ExtraViewSet
+from pages import views as pages
+from pages.sitemaps import SITEMAPS
 from vehicles import views
 from vehicles.api import AgencyViewSet, VehicleViewSet
 
@@ -29,6 +32,11 @@ urlpatterns = [
     path("occasions/", views.used_cars, name="used-cars"),
     path("occasions/<int:pk>/", views.used_car_detail, name="used-car-detail"),
     path("reservation/<str:reference>/paiement/", views.booking_payment, name="booking-payment"),
+    path("occasions/<int:pk>/signaler/", views.report_vehicle, name="report-vehicle"),
+    path("infos/<slug:slug>/", pages.legal, name="legal"),
+    path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
+    path("robots.txt", pages.robots),
+    path("taches/quotidiennes/", pages.daily_tasks),
     path("compte/", include("accounts.urls")),
     path("espace-vendeur/", include("backoffice.urls")),
     # Anciennes adresses de l'espace agence (V1)
@@ -38,4 +46,4 @@ urlpatterns = [
     path("agence/mot-de-passe/", RedirectView.as_view(pattern_name="accounts:password")),
     path("api/", include((router.urls, "api"))),
     path("admin/", admin.site.urls),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+] + (static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) if not settings.BLOB_READ_WRITE_TOKEN else [])
