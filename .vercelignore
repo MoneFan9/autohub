@@ -1,0 +1,7 @@
+docs/
+tests/
+media/
+__pycache__/
+*.pyc
+docker-compose.yml
+pytest.ini

@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% load humanize %}
+{% block title %}Agence{% endblock %}
+{% block content %}
+<h1 style="margin:24px 0 0">Tableau de bord agence</h1>
+<div class="kpis">
+  <div class="kpi"><b>{{ kpis.fleet }}</b><span>véhicules en flotte</span></div>
+  <div class="kpi"><b>{{ kpis.occupancy }} %</b><span>taux d'occupation actuel</span></div>
+  <div class="kpi"><b>{{ kpis.revenue_30d|floatformat:0|intcomma }} €</b><span>CA encaissé 30 j</span></div>
+  <div class="kpi"><b>{{ kpis.active }}</b><span>locations en cours</span></div>
+  <div class="kpi"><b>{{ kpis.for_sale }}</b><span>véhicules en vente</span></div>
+</div>
+<div class="panel" style="margin-bottom:16px"><b>Flotte :</b> {% for label, n in fleet_by_status %}<span class="tag" style="margin-left:6px">{{ label }} : {{ n }}</span>{% endfor %}</div>
+<div class="two">
+  <div class="panel"><h2>Départs à préparer (48 h)</h2>
+    <table>{% for b in departures %}<tr><td><b>{{ b.reference }}</b><br><span class="muted">{{ b.start|date:"d/m H:i" }} · {{ b.customer }}</span><br>{{ b.vehicle }}</td>
+      <td><form class="inline-form" method="post" action="{% url 'backoffice:start' b.reference %}">{% csrf_token %}
+        <input name="mileage" type="number" placeholder="km" value="{{ b.vehicle.mileage }}" required><input name="fuel_level" type="number" min="0" max="100" value="100" required><input name="damages" placeholder="Dommages"><button class="btn sm">Départ</button></form>
+        <form method="post" action="{% url 'backoffice:cancel' b.reference %}" style="margin-top:4px">{% csrf_token %}<button class="btn sm danger">Annuler</button></form></td></tr>
+    {% empty %}<tr><td class="muted">Aucun départ prévu.</td></tr>{% endfor %}</table></div>
+  <div class="panel"><h2>Retours attendus</h2>
+    <table>{% for b in returns %}<tr><td><b>{{ b.reference }}</b><br><span class="muted">retour {{ b.end|date:"d/m H:i" }} · {{ b.return_agency.city }}</span><br>{{ b.vehicle }}</td>
+      <td><form class="inline-form" method="post" action="{% url 'backoffice:complete' b.reference %}">{% csrf_token %}
+        <input name="mileage" type="number" placeholder="km" min="{{ b.vehicle.mileage }}" value="{{ b.vehicle.mileage }}" required><input name="fuel_level" type="number" min="0" max="100" value="100" required><input name="damages" placeholder="Dommages"><button class="btn sm">Retour</button></form></td></tr>
+    {% empty %}<tr><td class="muted">Aucune location en cours.</td></tr>{% endfor %}</table></div>
+</div>
+<div class="panel" style="margin-top:16px"><h2>Dernières réservations</h2>
+<table><tr><th>Réf.</th><th>Client</th><th>Véhicule</th><th>Période</th><th>Total</th><th>Statut</th></tr>
+{% for b in recent %}<tr><td><a href="{% url 'admin:rentals_booking_change' b.pk %}">{{ b.reference }}</a></td><td>{{ b.customer }}</td><td>{{ b.vehicle.title }}</td><td>{{ b.start|date:"d/m" }} → {{ b.end|date:"d/m" }}</td><td>{{ b.total_amount|floatformat:0 }} €</td><td><span class="badge b-{{ b.status }}">{{ b.get_status_display }}</span></td></tr>{% endfor %}
+</table></div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{
+  "builds": [
+    {
+      "src": "config/wsgi.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "50mb",
+        "includeFiles": "{templates,static}/**"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "config/wsgi.py"
+    }
+  ],
+  "regions": [
+    "fra1"
+  ]
+}

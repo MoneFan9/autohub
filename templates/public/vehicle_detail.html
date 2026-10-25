@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load humanize %}
+{% block title %}{{ vehicle.title }}{% endblock %}
+{% block content %}
+<div class="layout">
+  <div>
+    <div class="card">{% include "_car.svg.html" with v=vehicle %}
+      <div class="body"><h1 style="margin:0">{{ vehicle.title }} <span class="muted" style="font-weight:400">{{ vehicle.year }}</span></h1>
+        <div class="specs"><span class="tag">{{ vehicle.get_category_display }}</span><span class="tag">{{ vehicle.get_fuel_display }}</span><span class="tag">{{ vehicle.get_transmission_display }}</span><span class="tag">{{ vehicle.seats }} places</span><span class="tag">{{ vehicle.mileage|intcomma }} km</span></div>
+        <p>{{ vehicle.description }}</p><p class="muted">Agence : {{ vehicle.agency }} · {{ vehicle.agency.address }}</p>
+        {% if vehicle.is_for_sale %}<p><span class="badge b-confirmed">Aussi en vente : {{ vehicle.sale_price|floatformat:0|intcomma }} €</span></p>{% endif %}
+      </div></div>
+    {% if quote %}<div class="panel" style="margin-top:16px"><h2>Votre prix</h2><table class="summary">
+      <tr><td>Location {{ quote.days }} jour{{ quote.days|pluralize }} × {{ vehicle.daily_rate|floatformat:0 }} €</td><td>{{ quote.base_amount }} €</td></tr>
+      {% if quote.extras_amount %}<tr><td>Options</td><td>{{ quote.extras_amount }} €</td></tr>{% endif %}
+      {% if quote.discount_amount %}<tr><td>Remise longue durée</td><td>−{{ quote.discount_amount }} €</td></tr>{% endif %}
+      <tr class="total"><td>Total TTC</td><td>{{ quote.total_amount }} €</td></tr>
+      <tr><td class="muted">Caution (empreinte bancaire, non débitée)</td><td class="muted">{{ quote.deposit_amount }} €</td></tr></table></div>{% endif %}
+  </div>
+  <form class="panel" method="post">{% csrf_token %}<h2>Réserver</h2>
+    {{ form.non_field_errors }}
+    <div class="form-grid">
+      {% for f in form %}<div class="{% if f.name in 'extras,return_agency,card_number,email' %}full{% endif %}{% if f.name == 'extras' %} checks{% endif %}">{{ f.label_tag }}{{ f }}{% if f.help_text %}<div class="helptext">{{ f.help_text }}</div>{% endif %}{{ f.errors }}</div>{% endfor %}
+    </div>
+    <p><button class="btn" type="submit" style="width:100%">Payer et confirmer</button></p>
+    <p class="helptext">Conducteur : 21 ans minimum, permis de plus de 2 ans.</p>
+  </form>
+</div>
+{% endblock %}

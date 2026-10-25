@@ -1,0 +1,103 @@
+from datetime import timedelta
+
+from django.contrib import messages
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Count
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+from psycopg.types.range import Range
+
+from payments.models import Payment
+from payments.services import total_revenue
+from rentals import services
+from rentals.forms import InspectionForm
+from rentals.models import Booking
+from vehicles.models import Vehicle
+
+
+@staff_member_required
+def dashboard(request):
+    now = timezone.now()
+    today_end = timezone.localtime(now).replace(hour=23, minute=59, second=59)
+    bookings = Booking.objects.select_related("vehicle", "customer", "pickup_agency", "return_agency")
+
+    fleet = Vehicle.objects.exclude(status=Vehicle.Status.SOLD)
+    fleet_by_status = dict(fleet.values_list("status").annotate(n=Count("id")))
+    rentable_count = fleet.filter(is_rentable=True).count()
+    busy_now = Booking.objects.blocking().filter(period__contains=now).values("vehicle").distinct().count()
+
+    month = Payment.objects.filter(created_at__gte=now - timedelta(days=30))
+    context = {
+        "kpis": {
+            "fleet": fleet.count(),
+            "occupancy": round(100 * busy_now / rentable_count) if rentable_count else 0,
+            "revenue_30d": total_revenue(month),
+            "active": bookings.filter(status=Booking.Status.ACTIVE).count(),
+            "for_sale": Vehicle.objects.for_sale().count(),
+        },
+        "fleet_by_status": [(label, fleet_by_status.get(value, 0)) for value, label in Vehicle.Status.choices if value != "sold"],
+        "departures": bookings.filter(status=Booking.Status.CONFIRMED, period__startswith__lte=today_end + timedelta(days=2)).order_by("period"),
+        "returns": bookings.filter(status=Booking.Status.ACTIVE).order_by("period__endswith"),
+        "recent": bookings.order_by("-created_at")[:8],
+        "pickup_form": InspectionForm(),
+        "return_form": InspectionForm(),
+    }
+    return render(request, "backoffice/dashboard.html", context)
+
+
+def _run(request, reference, fn, needs_inspection=True):
+    booking = get_object_or_404(Booking, reference=reference)
+    kwargs = {}
+    if needs_inspection:
+        form = InspectionForm(request.POST)
+        if not form.is_valid():
+            messages.error(request, f"{booking.reference} : état des lieux incomplet.")
+            return redirect("backoffice:dashboard")
+        kwargs = {**form.cleaned_data, "user": request.user}
+    try:
+        fn(booking, **kwargs)
+        messages.success(request, f"{booking.reference} : {booking.get_status_display().lower()}.")
+    except services.BookingError as exc:
+        messages.error(request, f"{booking.reference} : {exc}")
+    return redirect("backoffice:dashboard")
+
+
+@staff_member_required
+@require_POST
+def start_rental(request, reference):
+    return _run(request, reference, services.start_rental)
+
+
+@staff_member_required
+@require_POST
+def complete_rental(request, reference):
+    return _run(request, reference, services.complete_rental)
+
+
+@staff_member_required
+@require_POST
+def cancel_booking(request, reference):
+    return _run(request, reference, services.cancel_booking, needs_inspection=False)
+
+
+@staff_member_required
+def planning(request):
+    """Planning de flotte sur 14 jours (une ligne par véhicule)."""
+    start = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)
+    days = [start + timedelta(days=i) for i in range(14)]
+    end = days[-1] + timedelta(days=1)
+    vehicles = list(Vehicle.objects.rentable().select_related("agency").order_by("agency__city", "brand"))
+    bookings = Booking.objects.blocking().filter(period__overlap=Range(start, end, "[)")).select_related("customer")
+    by_vehicle = {}
+    for b in bookings:
+        by_vehicle.setdefault(b.vehicle_id, []).append(b)
+    rows = []
+    for v in vehicles:
+        cells = []
+        for d in days:
+            d_end = d + timedelta(days=1)
+            hit = next((b for b in by_vehicle.get(v.id, []) if b.start < d_end and b.end > d), None)
+            cells.append(hit)
+        rows.append((v, cells))
+    return render(request, "backoffice/planning.html", {"days": days, "rows": rows})

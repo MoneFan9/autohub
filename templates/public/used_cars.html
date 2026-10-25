@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% load humanize %}
+{% block title %}Occasions{% endblock %}
+{% block hero %}<section class="hero"><div class="wrap"><h1>Véhicules d'occasion</h1><p>Issus de notre flotte : historique d'entretien complet, kilométrage certifié.</p></div></section>{% endblock %}
+{% block content %}
+<div class="grid" style="margin-top:-30px">
+{% for v in vehicles %}
+  <div class="card">{% include "_car.svg.html" %}
+    <div class="body"><h3>{{ v.title }}</h3><div class="muted">{{ v.year }} · {{ v.mileage|intcomma }} km · {{ v.agency.city }}</div>
+      <div class="specs"><span class="tag">{{ v.get_fuel_display }}</span><span class="tag">{{ v.get_transmission_display }}</span></div>
+      <div class="price"><strong>{{ v.sale_price|floatformat:0|intcomma }} €</strong><span class="muted">Contact : {{ v.agency.phone }}</span></div>
+    </div></div>
+{% empty %}<p>Aucun véhicule en vente.</p>{% endfor %}
+</div>
+<p class="muted">V2 : demande d'essai, offre en ligne, reprise et financement.</p>
+{% endblock %}

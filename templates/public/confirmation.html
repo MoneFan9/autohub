@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Réservation {{ booking.reference }}{% endblock %}
+{% block content %}
+<div class="panel" style="max-width:640px;margin:32px auto">
+  <h2>Réservation <code>{{ booking.reference }}</code> <span class="badge b-{{ booking.status }}">{{ booking.get_status_display }}</span></h2>
+  <p>{{ booking.customer }}, votre <b>{{ booking.vehicle.title }}</b> vous attend.</p>
+  <table class="summary">
+    <tr><td>Départ</td><td>{{ booking.start|date:"l d F Y, H:i" }} · {{ booking.pickup_agency }}</td></tr>
+    <tr><td>Retour</td><td>{{ booking.end|date:"l d F Y, H:i" }} · {{ booking.return_agency }}</td></tr>
+    {% if booking.extras.all %}<tr><td>Options</td><td>{{ booking.extras.all|join:", " }}</td></tr>{% endif %}
+    <tr class="total"><td>Payé</td><td>{{ booking.total_amount }} €</td></tr>
+    <tr><td class="muted">Caution bloquée</td><td class="muted">{{ booking.deposit_amount }} €</td></tr>
+  </table>
+  <p><a class="btn ghost" href="{% url 'home' %}">Retour à l'accueil</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% load static %}<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}AutoHub{% endblock %} · AutoHub</title><link rel="stylesheet" href="{% static 'css/app.css' %}"></head>
+<body>
+<header class="top"><div class="wrap"><a class="logo" href="{% url 'home' %}">Auto<span>Hub</span></a>
+<nav><a href="{% url 'home' %}">Location</a><a href="{% url 'used-cars' %}">Occasions</a>{% if user.is_staff %}<a href="{% url 'backoffice:dashboard' %}">Agence</a><a href="{% url 'backoffice:planning' %}">Planning</a><a href="{% url 'admin:index' %}">Admin</a>{% endif %}<a href="/api/">API</a></nav></div></header>
+{% block hero %}{% endblock %}
+<main class="wrap">
+{% for m in messages %}<div class="msg {{ m.tags }}">{{ m }}</div>{% endfor %}
+{% block content %}{% endblock %}
+</main>
+<footer class="wrap">AutoHub V1 · location et vente de véhicules</footer>
+</body></html>

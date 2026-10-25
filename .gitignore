@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+media/
+staticfiles/
+.env
+.pytest_cache/
+staticfiles/
+.vercel/
