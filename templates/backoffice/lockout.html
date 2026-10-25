@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Connexion bloquée{% endblock %}
+{% block content %}
+<section class="card auth" aria-labelledby="lock-title">
+  <h1 id="lock-title">Connexion temporairement bloquée</h1>
+  <div class="alert error" role="alert">Trop de tentatives avec un mot de passe incorrect.</div>
+  <p>Par sécurité, ce compte est bloqué depuis votre connexion pendant 15 minutes. Réessayez ensuite, ou contactez le propriétaire si vous avez oublié votre mot de passe.</p>
+  <a class="btn btn-ghost btn-block" href="{% url 'home' %}">Retour à l'accueil</a>
+</section>
+{% endblock %}

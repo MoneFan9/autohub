@@ -3,7 +3,13 @@ from datetime import timedelta
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth.views import LoginView
+from base64 import b32encode
+
+import segno
+from django.contrib.auth.views import LoginView, PasswordChangeView
+from django.urls import reverse_lazy
+from django_otp import login as otp_login
+from django_otp.plugins.otp_totp.models import TOTPDevice
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -17,7 +23,7 @@ from rentals.forms import InspectionForm
 from rentals.models import Booking
 from vehicles.models import Vehicle
 
-from .roles import agency_required, is_agency_member
+from .roles import agency_required, is_agency_member, is_owner, owner_required
 
 
 
@@ -38,6 +44,47 @@ class AgencyLoginView(LoginView):
     template_name = "backoffice/login.html"
     authentication_form = AgencyAuthenticationForm
     redirect_authenticated_user = True
+
+
+class AgencyPasswordChangeView(PasswordChangeView):
+    template_name = "backoffice/password_change.html"
+    success_url = reverse_lazy("backoffice:dashboard")
+
+    def form_valid(self, form):
+        messages.success(self.request, "Mot de passe modifié.")
+        return super().form_valid(form)
+
+
+agency_password_change = agency_required(AgencyPasswordChangeView.as_view())
+
+
+class TokenForm(forms.Form):
+    token = forms.CharField(
+        label="Code à 6 chiffres", max_length=6, min_length=6,
+        widget=forms.TextInput(attrs={"inputmode": "numeric", "autocomplete": "one-time-code", "pattern": "[0-9]{6}"}),
+    )
+
+
+@owner_required
+def security(request):
+    """Activation de la double authentification du propriétaire (obligatoire pour l'admin)."""
+    user = request.user
+    if TOTPDevice.objects.filter(user=user, confirmed=True).exists():
+        return render(request, "backoffice/security.html", {"active": True})
+    # Le premier appareil s'enregistre ici ; ensuite, seul l'admin (déjà vérifié) peut en gérer d'autres.
+    device, _ = TOTPDevice.objects.get_or_create(user=user, confirmed=False, defaults={"name": "Application d'authentification"})
+    form = TokenForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if device.verify_token(form.cleaned_data["token"]):
+            device.confirmed = True
+            device.save(update_fields=["confirmed"])
+            otp_login(request, device)
+            messages.success(request, "Double authentification activée. L'admin vous demandera désormais un code.")
+            return redirect("admin:index")
+        form.add_error("token", "Code incorrect ou expiré. Saisissez le code affiché en ce moment dans l'application.")
+    qr = segno.make(device.config_url, error="m").svg_inline(scale=5, border=2, dark="#0f172a")
+    secret = b32encode(device.bin_key).decode().rstrip("=")
+    return render(request, "backoffice/security.html", {"form": form, "qr": qr, "secret": secret})
 
 
 @agency_required
@@ -64,6 +111,7 @@ def dashboard(request):
         "departures": bookings.filter(status=Booking.Status.CONFIRMED, period__startswith__lte=today_end + timedelta(days=2)).order_by("period"),
         "returns": bookings.filter(status=Booking.Status.ACTIVE).order_by("period__endswith"),
         "recent": bookings.order_by("-created_at")[:8],
+        "needs_2fa": is_owner(request.user) and not TOTPDevice.objects.filter(user=request.user, confirmed=True).exists(),
         "pickup_form": InspectionForm(),
         "return_form": InspectionForm(),
     }

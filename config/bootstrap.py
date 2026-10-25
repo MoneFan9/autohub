@@ -1,6 +1,7 @@
 """Démarrage serverless : migre et charge la démo une seule fois (verrou consultatif Postgres)."""
 import os
 
+from django.conf import settings
 from django.core.management import call_command
 from django.db import connection
 
@@ -8,7 +9,7 @@ LOCK_ID = 7_340_001
 
 
 def run():
-    if os.environ.get("AUTO_BOOTSTRAP") != "1":
+    if os.environ.get("AUTO_BOOTSTRAP") != "1" or settings.PREVIEW_ON_PRODUCTION_DB:
         return
     with connection.cursor() as cur:
         cur.execute("SELECT pg_advisory_lock(%s)", [LOCK_ID])

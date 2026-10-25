@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Double authentification{% endblock %}
+{% block content %}
+<section class="card auth auth-wide" aria-labelledby="sec-title">
+  <div><h1 id="sec-title">Double authentification</h1>
+  <p class="muted">Obligatoire pour ouvrir l'admin. À chaque connexion, l'admin vous demandera, en plus du mot de passe, le code à 6 chiffres affiché par votre téléphone.</p></div>
+  {% if active %}
+    <div class="alert success" role="status"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Activée sur votre compte.</div>
+    <a class="btn btn-block" href="{% url 'admin:index' %}">Ouvrir l'admin</a>
+  {% else %}
+    <ol class="setup">
+      <li>Installez une application d'authentification sur votre téléphone (Google Authenticator, Microsoft Authenticator, 1Password…).</li>
+      <li>Scannez ce QR code avec l'application.
+        <div class="qr">{{ qr|safe }}</div>
+        <details><summary>Impossible de scanner ?</summary><p class="help">Saisissez cette clé dans l'application : <code class="secret">{{ secret }}</code></p></details>
+      </li>
+      <li>Saisissez le code affiché par l'application.</li>
+    </ol>
+    <form method="post" novalidate>{% csrf_token %}
+      {% include "_field.html" with f=form.token %}
+      <button class="btn btn-lg btn-block" type="submit">Activer</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

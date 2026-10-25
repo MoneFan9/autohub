@@ -14,10 +14,12 @@ router.register("agencies", AgencyViewSet)
 router.register("extras", ExtraViewSet)
 router.register("bookings", BookingViewSet)
 
-from backoffice.roles import owner_only_admin  # noqa: E402
+from backoffice.roles import OwnerAdminLoginForm, owner_only_admin  # noqa: E402
 
 admin.site.site_header = "AutoHub — administration"
 admin.site.has_permission = owner_only_admin
+admin.site.login_form = OwnerAdminLoginForm
+admin.site.login_template = "admin/otp_login.html"
 
 urlpatterns = [
     path("", views.home, name="home"),

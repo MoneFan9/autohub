@@ -279,3 +279,9 @@ a.vehicle-card:hover { text-decoration: none; box-shadow: var(--shadow-2); borde
   .nav { order: 2; }
   .header-logout button { min-height: 44px; font-size: 14px; }
 }
+.auth-wide { max-width: 520px; }
+.setup { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: var(--s-3); color: var(--ink-2); }
+.qr { margin: var(--s-3) 0; width: 200px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); padding: var(--s-2); }
+.qr svg { width: 100%; height: auto; }
+.secret { word-break: break-all; font-size: 13px; background: var(--surface-2); padding: 2px 6px; border-radius: 4px; }
+.head-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }
