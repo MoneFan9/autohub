@@ -60,6 +60,8 @@ class Booking(models.Model):
     discount_amount = models.DecimalField("remise", max_digits=10, decimal_places=2)
     total_amount = models.DecimalField("total TTC", max_digits=10, decimal_places=2)
     deposit_amount = models.DecimalField("caution", max_digits=10, decimal_places=2)
+    payment_method = models.CharField("moyen de paiement", max_length=10, blank=True)
+    platform_fee = models.DecimalField("commission plateforme", max_digits=10, decimal_places=2, default=0)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -80,6 +82,14 @@ class Booking(models.Model):
 
     def __str__(self):
         return self.reference
+
+    @property
+    def seller(self):
+        return self.vehicle.agency.seller
+
+    @property
+    def seller_amount(self):
+        return self.total_amount - self.platform_fee
 
     @property
     def balance_due(self):

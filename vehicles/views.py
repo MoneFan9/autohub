@@ -1,9 +1,11 @@
 from django.contrib import messages
 from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
-from customers.services import CustomerMismatch, get_or_create_customer
+from customers.services import customer_for_user
 from payments.providers import PaymentDeclined
+from payments.services import MOBILE_MONEY
 from rentals import pricing, services
 from rentals.forms import BookingForm, PeriodForm, SearchForm, default_period
 from rentals.models import Booking
@@ -27,7 +29,8 @@ def home(request):
     vehicles, period = [], None
     if form.is_valid():
         d = form.cleaned_data
-        qs = Vehicle.objects.available_between(d["start"], d["end"]).select_related("agency")
+        services.expire_stale_pending(None)
+        qs = Vehicle.objects.available_between(d["start"], d["end"]).select_related("agency__seller")
         for field in ("agency", "category", "fuel", "transmission"):
             if d.get(field):
                 qs = qs.filter(**{field: d[field]})
@@ -38,46 +41,98 @@ def home(request):
     return render(request, "public/home.html", {"form": form, "results": vehicles, "period": period})
 
 
+def _remember(request, booking):
+    request.session[SESSION_BOOKINGS] = request.session.get(SESSION_BOOKINGS, []) + [booking.reference]
+
+
+def _driver_initial(user):
+    if not user.is_authenticated:
+        return {}
+    c = getattr(user, "customer", None)
+    base = {"first_name": user.first_name, "last_name": user.last_name}
+    if c:
+        base.update({f: getattr(c, f) for f in BookingForm.CUSTOMER_FIELDS})
+    return base
+
+
 def vehicle_detail(request, pk):
-    vehicle = get_object_or_404(Vehicle.objects.rentable().select_related("agency"), pk=pk)
-    form = BookingForm(request.POST or None, initial=_period_initial(request))
+    services.expire_stale_pending(None)
+    vehicle = get_object_or_404(Vehicle.objects.rentable().select_related("agency__seller"), pk=pk)
+    seller = vehicle.agency.seller
+    methods = seller.payment_methods if seller else None
+    form = BookingForm(request.POST or None, initial={**_period_initial(request), **_driver_initial(request.user)}, methods=methods)
     quote = None
+    if request.method == "POST" and not request.user.is_authenticated:
+        return redirect(f"{reverse('accounts:login')}?next={request.path}")
     if request.method == "POST" and form.is_valid():
         d = form.cleaned_data
         try:
-            customer = get_or_create_customer(form.customer_data())
+            customer = customer_for_user(request.user, form.customer_data())
             booking = services.create_booking(
                 vehicle=vehicle, customer=customer, start=d["start"], end=d["end"],
                 return_agency=d["return_agency"], extras=list(d["extras"]),
             )
-        except (services.BookingError, CustomerMismatch) as exc:
+        except services.BookingError as exc:
             form.add_error(None, str(exc))
         else:
+            method = d["payment_method"]
+            _remember(request, booking)
+            if method in MOBILE_MONEY:
+                services.start_mobile_payment(booking, method, d["mobile_number"])
+                return redirect("booking-payment", reference=booking.reference)
             try:
                 services.pay_and_confirm(booking, form.payment_token())
             except PaymentDeclined as exc:
                 services.cancel_booking(booking)
-                field = "card_number" if form.cleaned_data["payment_method"] == "card" else "mobile_number"
-                form.add_error(field, f"{exc} Vérifiez le numéro ou choisissez un autre moyen de paiement.")
+                form.add_error("card_number", f"{exc} Vérifiez le numéro ou choisissez un autre moyen de paiement.")
             else:
-                request.session[SESSION_BOOKINGS] = request.session.get(SESSION_BOOKINGS, []) + [booking.reference]
                 messages.success(request, "Réservation confirmée.")
                 return redirect("booking-confirmation", reference=booking.reference)
     period = PeriodForm(request.POST if request.method == "POST" else _period_initial(request))
     if period.is_valid():
         extras = form.cleaned_data.get("extras", []) if form.is_bound and hasattr(form, "cleaned_data") else []
         quote = pricing.quote(vehicle, period.cleaned_data["start"], period.cleaned_data["end"], list(extras))
-    return render(request, "public/vehicle_detail.html", {"vehicle": vehicle, "form": form, "quote": quote})
+    return render(request, "public/vehicle_detail.html", {"vehicle": vehicle, "seller": seller, "form": form, "quote": quote})
+
+
+def _visible_booking(request, reference):
+    booking = get_object_or_404(Booking.objects.select_related("vehicle__agency__seller", "customer", "pickup_agency", "return_agency"), reference=reference)
+    mine = request.user.is_authenticated and booking.customer.user_id == request.user.id
+    # Visible uniquement par son client (pas d'énumération par référence).
+    if not mine and reference not in request.session.get(SESSION_BOOKINGS, []):
+        raise Http404
+    return booking
+
+
+def booking_payment(request, reference):
+    """Mobile Money : le client valide la demande de paiement sur son téléphone."""
+    booking = _visible_booking(request, reference)
+    payment = booking.payments.filter(kind="charge").order_by("-created_at").first()
+    if booking.status == Booking.Status.CONFIRMED:
+        return redirect("booking-confirmation", reference=reference)
+    if request.method == "POST" and booking.status == Booking.Status.PENDING:
+        status = services.finalize_mobile_payment(booking)
+        if status == "succeeded":
+            messages.success(request, "Paiement reçu, réservation confirmée.")
+            return redirect("booking-confirmation", reference=reference)
+        if status == "pending":
+            messages.info(request, "Paiement pas encore validé. Validez la demande sur votre téléphone puis réessayez.")
+        booking.refresh_from_db()
+    return render(request, "public/booking_payment.html", {"booking": booking, "payment": payment})
 
 
 def booking_confirmation(request, reference):
-    # Visible uniquement par la session qui a réservé (pas d'énumération par référence).
-    if reference not in request.session.get(SESSION_BOOKINGS, []):
-        raise Http404
-    booking = get_object_or_404(Booking.objects.select_related("vehicle", "customer", "pickup_agency", "return_agency"), reference=reference)
+    booking = _visible_booking(request, reference)
+    if booking.status == Booking.Status.PENDING:
+        return redirect("booking-payment", reference=reference)
     return render(request, "public/confirmation.html", {"booking": booking})
 
 
 def used_cars(request):
-    qs = Vehicle.objects.for_sale().select_related("agency").order_by("sale_price")
+    qs = Vehicle.objects.for_sale().select_related("agency__seller").order_by("sale_price")
     return render(request, "public/used_cars.html", {"vehicles": qs})
+
+
+def used_car_detail(request, pk):
+    vehicle = get_object_or_404(Vehicle.objects.for_sale().select_related("agency__seller"), pk=pk)
+    return render(request, "public/used_car_detail.html", {"vehicle": vehicle, "seller": vehicle.agency.seller})
