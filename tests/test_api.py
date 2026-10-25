@@ -6,6 +6,8 @@ from rest_framework.test import APIClient
 
 from rentals.models import Booking
 
+from .conftest import make_agency_member
+
 
 @pytest.fixture
 def api():
@@ -65,7 +67,7 @@ def test_bookings_list_and_actions_are_staff_only(api, vehicle, t0, gps):
     assert api.get("/api/bookings/").status_code in (401, 403)
     assert api.post(f"/api/bookings/{ref}/start/", {"mileage": 10, "fuel_level": 100}).status_code in (401, 403)
 
-    api.force_authenticate(get_user_model().objects.create_user("staff", is_staff=True))
+    api.force_authenticate(make_agency_member("agence"))
     r = api.post(f"/api/bookings/{ref}/start/", {"mileage": 10, "fuel_level": 100})
     assert r.status_code == 200 and r.json()["status"] == "active"
     r = api.post(f"/api/bookings/{ref}/complete/", {"mileage": 5, "fuel_level": 100})

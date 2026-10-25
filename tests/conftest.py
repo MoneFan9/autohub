@@ -38,3 +38,26 @@ def gps(db):
 @pytest.fixture
 def t0():
     return (timezone.now() + timedelta(days=1)).replace(minute=0, second=0, microsecond=0)
+
+
+def make_agency_member(username, password=None, **extra):
+    from django.contrib.auth import get_user_model
+    from django.contrib.auth.models import Group
+
+    from backoffice.roles import AGENCY_GROUP
+
+    user = get_user_model().objects.create_user(username, password=password, **extra)
+    user.groups.add(Group.objects.get_or_create(name=AGENCY_GROUP)[0])
+    return user
+
+
+@pytest.fixture
+def agent(db):
+    return make_agency_member("agent", password="Secret-123")
+
+
+@pytest.fixture
+def owner(db):
+    from django.contrib.auth import get_user_model
+
+    return get_user_model().objects.create_superuser("patron", "", "Secret-456")

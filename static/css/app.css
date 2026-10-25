@@ -269,3 +269,13 @@ a.vehicle-card:hover { text-decoration: none; box-shadow: var(--shadow-2); borde
   .has-paybar main { padding-bottom: 96px; }
   .has-paybar .summary-card .btn { display: none; }
 }
+.sm-only { display: none; }
+@media (max-width: 760px) { .lg-only { display: none; } .sm-only { display: inline; } }
+.header-logout { margin: 0 0 0 calc(-1 * var(--s-4)); }
+.header-logout button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 var(--s-3); border: 0; border-radius: var(--r-sm); background: none; color: var(--ink-2); font: inherit; font-weight: 500; cursor: pointer; }
+.header-logout button:hover { background: var(--surface-2); color: var(--ink); }
+@media (max-width: 760px) {
+  .header-logout { order: 1; margin-left: auto; }
+  .nav { order: 2; }
+  .header-logout button { min-height: 44px; font-size: 14px; }
+}
