@@ -145,10 +145,11 @@ PAYMENT_PROVIDER = os.environ.get("PAYMENT_PROVIDER", "fake")
 RENTAL_MIN_DRIVER_AGE = 21
 RENTAL_MIN_LICENSE_YEARS = 2
 
-# Connexions : 5 échecs pour un même identifiant depuis une même adresse IP = blocage 15 minutes.
+# Connexions : blocage 15 minutes après 5 échecs sur un même identifiant (quelle que soit l'IP)
+# ou depuis une même IP (quel que soit l'identifiant). Un couple identifiant + IP se contournait en changeant d'IP.
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = timedelta(minutes=15)
-AXES_LOCKOUT_PARAMETERS = [["username", "ip_address"]]
+AXES_LOCKOUT_PARAMETERS = ["username", "ip_address"]
 AXES_RESET_ON_SUCCESS = True
 AXES_LOCKOUT_TEMPLATE = "backoffice/lockout.html"
 AXES_IPWARE_PROXY_COUNT = 1
