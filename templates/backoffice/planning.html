@@ -1,12 +1,54 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load cars %}
 {% block title %}Planning{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>Planning de la flotte</h1><p class="muted">14 prochains jours</p></div>
-<div class="legend" aria-label="Légende"><span><i class="bar"></i>Confirmée</span><span><i class="bar active"></i>En cours</span><span><i class="bar pending"></i>En attente</span></div></div>
+<div class="page-head"><div><h1>Planning</h1><p class="muted">Du {{ first|date:"j F" }} au {{ last|date:"j F Y" }}</p></div>
+  <div class="legend" aria-label="Légende"><span><i class="bar confirmed"></i>Confirmée</span><span><i class="bar active"></i>En cours</span><span><i class="bar pending"></i>Paiement en attente</span><span><i class="bar block"></i>Indisponible</span></div></div>
 {% include "backoffice/_tabs.html" %}
-<div class="card planning"><table>
-<thead><tr><th class="veh">Véhicule</th>{% for d in days %}<th{% if forloop.first %} class="today"{% endif %}>{{ d|date:"D" }}<br>{{ d|date:"j" }}</th>{% endfor %}</tr></thead>
-<tbody>{% for v, cells in rows %}<tr><th class="veh" scope="row"><b>{{ v.title }}</b><div class="muted small">{{ v.plate }} · {{ v.agency.city }}</div></th>
-{% for b in cells %}<td class="cell{% if forloop.first %} today{% endif %}">{% if b %}<span class="bar {{ b.status }}" title="{{ b.reference }} · {{ b.customer }} · {{ b.get_status_display }}">{{ b.customer.last_name }}</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+
+<nav class="plan-toolbar" aria-label="Période affichée">
+  <div class="plan-nav">
+    <a class="btn btn-sm btn-ghost" href="?debut={{ prev|date:'Y-m-d' }}&jours={{ span }}" aria-label="Période précédente">←</a>
+    <a class="btn btn-sm btn-ghost" href="?jours={{ span }}">Aujourd'hui</a>
+    <a class="btn btn-sm btn-ghost" href="?debut={{ next|date:'Y-m-d' }}&jours={{ span }}" aria-label="Période suivante">→</a>
+  </div>
+  <form class="plan-jump" method="get"><label class="sr-only" for="debut">Aller au</label><input id="debut" type="date" name="debut" value="{{ first|date:'Y-m-d' }}"><input type="hidden" name="jours" value="{{ span }}"><button class="btn btn-sm btn-ghost" type="submit">Aller</button></form>
+  <div class="seg" role="group" aria-label="Durée affichée">{% for n in spans %}<a href="?debut={{ first|date:'Y-m-d' }}&jours={{ n }}"{% if n == span %} aria-current="true"{% endif %}>{{ n }} j</a>{% endfor %}</div>
+</nav>
+
+{% if rows %}
+<div class="card planning" tabindex="0" aria-label="Frise : une ligne par véhicule, faites défiler horizontalement">
+<table class="plan{% if span == 30 %} dense{% endif %}">
+<thead><tr><th class="veh" scope="col">Véhicule</th>{% for d in days %}<th scope="col" class="{% if d == today %}today{% endif %}{% if d.weekday >= 5 %} we{% endif %}"><span>{{ d|date:"D"|slice:":2" }}</span><b>{{ d|date:"j" }}</b>{% if d.day == 1 or forloop.first %}<small>{{ d|date:"M" }}</small>{% endif %}</th>{% endfor %}</tr></thead>
+<tbody>{% for row in rows %}<tr>
+  <th class="veh" scope="row"><a href="{% url 'backoffice:vehicle_edit' row.vehicle.pk %}"><b>{{ row.vehicle.title }}</b></a><div class="muted small">{{ row.vehicle.plate }} · {{ row.vehicle.agency.city }} · {{ row.occupancy }} % loué</div></th>
+  {% for s in row.segments %}
+    {% if s.kind == "booking" %}<td colspan="{{ s.span }}" class="cell"><a class="bar {{ s.obj.status }}" href="{% url 'backoffice:booking' s.obj.reference %}" title="{{ s.obj.reference }} · {{ s.obj.customer }} · {{ s.obj.start|date:'j M H:i' }} → {{ s.obj.end|date:'j M H:i' }}">{{ s.obj.customer.last_name }}{% if s.span > 2 %} · {{ s.obj.total_amount|fcfa }}{% endif %}</a></td>
+    {% elif s.kind == "block" %}<td colspan="{{ s.span }}" class="cell"><a class="bar block" href="{% url 'backoffice:vehicle_edit' row.vehicle.pk %}#dispo" title="Indisponible{% if s.obj.reason %} : {{ s.obj.reason }}{% endif %}">{% if s.span > 1 %}{{ s.obj.reason|default:"Indisponible" }}{% else %}—{% endif %}</a></td>
+    {% else %}<td class="cell free{% if s.day == today %} today{% endif %}{% if s.day.weekday >= 5 %} we{% endif %}"><a href="{% url 'backoffice:vehicle_edit' row.vehicle.pk %}?bloquer={{ s.day|date:'Y-m-d' }}#dispo" aria-label="{{ row.vehicle.title }} libre le {{ s.day|date:'j F' }} : bloquer ce jour"></a></td>{% endif %}
+  {% endfor %}
+</tr>{% endfor %}</tbody>
 </table></div>
+<p class="muted small">Cliquez sur une réservation pour la gérer, sur un jour libre pour le bloquer.</p>
+{% else %}
+<div class="empty"><h2>Aucun véhicule à louer</h2><p>Publiez un véhicule proposé à la location pour suivre ses réservations ici.</p>{% if my_seller %}<a class="btn" href="{% url 'backoffice:vehicle_new' %}">Ajouter un véhicule</a>{% endif %}</div>
+{% endif %}
+
+{% if feed_url %}
+<section class="card panel panel-spaced" aria-labelledby="cal-title">
+  <h2 id="cal-title">Recevoir le planning dans l'agenda de votre téléphone</h2>
+  <p class="muted">Vos réservations et indisponibilités apparaissent dans Google Agenda ou l'agenda de l'iPhone, mises à jour automatiquement (toutes les quelques heures selon l'application).</p>
+  <div class="feed"><input type="text" readonly value="{{ feed_url }}" aria-label="Lien de votre agenda" onclick="this.select()"><button class="btn btn-sm" type="button" data-copy="{{ feed_url }}">Copier le lien</button></div>
+  <details class="act"><summary class="btn btn-sm btn-ghost">Comment faire ?</summary>
+    <ol class="setup">
+      <li><b>iPhone</b> : touchez <a href="{{ feed_url }}" data-webcal="{{ feed_url }}">ce lien d'abonnement</a>, puis « S'abonner ».</li>
+      <li><b>Google Agenda</b> : sur ordinateur, calendar.google.com → « Autres agendas » → « + » → « À partir de l'URL », collez le lien copié. Il apparaît ensuite sur le téléphone.</li>
+    </ol>
+    <p class="help">Ce lien est personnel : il donne accès aux noms et téléphones de vos clients. Ne le partagez pas. En cas de doute, créez-en un nouveau.</p>
+    <form method="post" action="{% url 'backoffice:calendar_reset' %}" onsubmit="return confirm('L\'ancien lien cessera de fonctionner. Continuer ?')">{% csrf_token %}<button class="btn btn-sm btn-ghost" type="submit">Créer un nouveau lien</button></form>
+  </details>
+</section>
+{% endif %}
 {% endblock %}
+{% block scripts %}<script>
+document.querySelectorAll("[data-webcal]").forEach((a) => { a.href = a.dataset.webcal.replace(/^https?:/, "webcal:"); });
+</script>{% endblock %}

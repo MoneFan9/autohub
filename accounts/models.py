@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -25,6 +27,8 @@ class Seller(models.Model):
         "numéro de versement Mobile Money", max_length=30, blank=True,
         help_text="Où la plateforme vous reverse les paiements en ligne, commission déduite.",
     )
+    # Lien secret de l'agenda (abonnement depuis Google Agenda, iPhone…) ; régénérable.
+    calendar_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

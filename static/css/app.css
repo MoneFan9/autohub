@@ -370,3 +370,40 @@ label.check input, .option input[type="checkbox"] { width: 18px; height: 18px; m
 .legal li { margin-bottom: var(--s-2); }
 .legal .table td, .legal .table th { vertical-align: top; }
 .detail > *, .legal-layout > * { min-width: 0; }
+/* Planning : frise avec navigation */
+.plan-toolbar { display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; justify-content: space-between; margin-bottom: var(--s-4); }
+.plan-nav, .plan-jump { display: flex; gap: var(--s-2); align-items: center; }
+.plan-jump input { width: auto; min-height: 36px; padding: 4px var(--s-2); }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: var(--r-sm); overflow: hidden; }
+.seg a { padding: 6px var(--s-3); color: var(--ink-2); font-weight: 600; font-size: 13px; min-height: 36px; display: inline-flex; align-items: center; }
+.seg a + a { border-left: 1px solid var(--line-2); }
+.seg a[aria-current] { background: var(--brand); color: var(--brand-ink); }
+.seg a:hover { text-decoration: none; }
+.plan thead th { padding: var(--s-1) 2px; line-height: 1.2; }
+.plan thead th span, .plan thead th small { display: block; font-weight: 500; font-size: 11px; }
+.plan thead th b { display: block; font-size: 14px; color: var(--ink); }
+.plan thead th.today b { color: var(--brand); }
+.plan th.we, .plan td.we { background: var(--surface-2); }
+.plan td.cell { padding: 6px 2px; }
+.plan.dense td.cell { min-width: 34px; }
+.plan .bar { text-decoration: none; }
+.plan .bar:hover { filter: brightness(.96); text-decoration: none; }
+.bar.confirmed { background: var(--brand-soft); color: var(--brand-hover); }
+.bar.block { background: repeating-linear-gradient(135deg, var(--surface-2) 0 6px, var(--line) 6px 12px); color: var(--muted); }
+.plan td.free a { display: block; height: 26px; border-radius: 6px; }
+.plan td.free a:hover, .plan td.free a:focus-visible { background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line-2); }
+.plan .veh a { color: var(--ink); }
+.feed { display: flex; gap: var(--s-2); margin: var(--s-3) 0; }
+.feed input { flex: 1; min-width: 0; font-size: 13px; }
+.summary-card .inspect { margin-top: var(--s-4); }
+.summary-card .inspect h3 { grid-column: 1 / -1; }
+.summary-card form + form { margin-top: var(--s-3); }
+.summary-card .inspect { grid-template-columns: 1fr 1fr; }
+.summary-card .inspect .wide, .summary-card .inspect .btn { grid-column: 1 / -1; }
+@media (max-width: 600px) {
+  .plan .veh { white-space: normal; width: 104px; min-width: 104px; max-width: 104px; padding: var(--s-2) 6px; font-size: 12px; }
+  .plan .veh .muted { font-size: 11px; }
+  .plan { min-width: 0 !important; }
+  .plan td.cell { min-width: 44px; }
+  .plan-jump { order: 3; }
+}

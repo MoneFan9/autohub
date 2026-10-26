@@ -1,0 +1,60 @@
+{% extends "base.html" %}{% load cars %}
+{% block title %}Réservation {{ b.reference }}{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'backoffice:planning' %}?debut={{ b.start|date:'Y-m-d' }}"><svg class="i" aria-hidden="true"><use href="#i-left"/></svg>Planning</a>
+<div class="page-head"><div><h1>{{ b.vehicle.title }} · {{ b.customer }}</h1><p class="muted"><span class="num">{{ b.reference }}</span> · <span class="badge b-{{ b.status }}">{{ b.get_status_display }}</span></p></div></div>
+<div class="detail">
+  <div>
+    <section class="card panel" aria-labelledby="when"><h2 id="when">Période</h2>
+      <table class="summary">
+        <tr><td>Départ</td><td><div class="when"><b>{{ b.start|date:"l j F, H:i" }}</b><span class="muted">{{ b.pickup_agency.name }}, {{ b.pickup_agency.city }}</span></div></td></tr>
+        <tr><td>Retour</td><td><div class="when"><b>{{ b.end|date:"l j F, H:i" }}</b><span class="muted">{{ b.return_agency.name }}, {{ b.return_agency.city }}</span></div></td></tr>
+        <tr><td>Durée</td><td>{{ b.days }} jour{{ b.days|pluralize }}</td></tr>
+        {% if b.extras.all %}<tr><td>Options</td><td>{{ b.extras.all|join:", " }}</td></tr>{% endif %}
+      </table>
+    </section>
+    <section class="card panel panel-spaced" aria-labelledby="who"><h2 id="who">Client</h2>
+      <p><b>{{ b.customer }}</b><br>
+      <a href="tel:{{ b.customer.phone|cut:' ' }}">{{ b.customer.phone }}</a>{% with wa=b.customer.phone|cut:' '|cut:'+' %}{% if wa %} · <a href="https://wa.me/{{ wa }}" rel="noopener">WhatsApp</a>{% endif %}{% endwith %}<br>
+      <span class="muted small">Permis n° {{ b.customer.license_number }}, obtenu le {{ b.customer.license_issued_on|date:"j F Y" }} · né(e) le {{ b.customer.birth_date|date:"j F Y" }}</span></p>
+      <p class="help">À vérifier sur le permis et une pièce d'identité avant de remettre les clés.</p>
+    </section>
+    {% if inspections %}<section class="card panel panel-spaced" aria-labelledby="edl"><h2 id="edl">États des lieux</h2>
+      <ul class="rows">{% for i in inspections %}<li><b>{{ i.get_kind_display }}</b> · {{ i.created_at|date:"j M H:i" }} · {{ i.mileage }} km · carburant {{ i.fuel_level }} %{% if i.damages %}<div class="muted small">Dommages : {{ i.damages }}</div>{% endif %}</li>{% endfor %}</ul>
+    </section>{% endif %}
+  </div>
+  <aside class="card summary-card" aria-labelledby="money">
+    <h2 id="money">Montants</h2>
+    <table class="summary">
+      <tr><td>Total ({{ b.payment_label }})</td><td>{{ b.total_amount|fcfa }}</td></tr>
+      <tr><td>Commission AutoHub</td><td>−{{ b.platform_fee|fcfa }}</td></tr>
+      <tr class="total"><td>Pour vous</td><td>{{ b.seller_amount|fcfa }}</td></tr>
+      {% if b.balance_due %}<tr><td>À encaisser en espèces</td><td>{{ b.balance_due|fcfa }}</td></tr>{% endif %}
+      <tr class="deposit"><td>Caution</td><td>{{ b.deposit_amount|fcfa }}</td></tr>
+    </table>
+    {% with here=request.path %}
+    {% if b.status == "confirmed" %}
+      <form class="inspect" method="post" action="{% url 'backoffice:start' b.reference %}">{% csrf_token %}<input type="hidden" name="next" value="{{ here }}">
+        <h3>Remise des clés</h3>
+        <div class="field"><label for="km">Km</label><input id="km" name="mileage" type="number" inputmode="numeric" value="{{ b.vehicle.mileage }}" required></div>
+        <div class="field"><label for="fu">Carburant %</label><input id="fu" name="fuel_level" type="number" min="0" max="100" value="100" required></div>
+        <div class="field wide"><label for="dm">Dommages constatés</label><input id="dm" name="damages" placeholder="Aucun"></div>
+        <label class="cash-check full"><input type="checkbox" name="handover_received" required> J'ai reçu {% if b.balance_due %}{{ b.balance_due|fcfa }} en espèces et {% endif %}la caution de {{ b.deposit_amount|fcfa }}</label>
+        <button class="btn btn-block" type="submit">Valider le départ</button>
+      </form>
+    {% elif b.status == "active" %}
+      <form class="inspect" method="post" action="{% url 'backoffice:complete' b.reference %}">{% csrf_token %}<input type="hidden" name="next" value="{{ here }}">
+        <h3>Retour du véhicule</h3>
+        <div class="field"><label for="rkm">Km</label><input id="rkm" name="mileage" type="number" inputmode="numeric" min="{{ b.vehicle.mileage }}" value="{{ b.vehicle.mileage }}" required></div>
+        <div class="field"><label for="rfu">Carburant %</label><input id="rfu" name="fuel_level" type="number" min="0" max="100" value="100" required></div>
+        <div class="field wide"><label for="rdm">Dommages constatés</label><input id="rdm" name="damages" placeholder="Aucun"></div>
+        <button class="btn btn-block" type="submit">Valider le retour</button>
+      </form>
+    {% endif %}
+    {% if b.status == "confirmed" or b.status == "pending" %}
+      <form method="post" action="{% url 'backoffice:cancel' b.reference %}" onsubmit="return confirm('Annuler la réservation {{ b.reference }} ? Le client sera prévenu.')">{% csrf_token %}<input type="hidden" name="next" value="{{ here }}"><button class="btn btn-sm btn-danger btn-block" type="submit">Annuler la réservation</button></form>
+    {% endif %}
+    {% endwith %}
+  </aside>
+</div>
+{% endblock %}
