@@ -19,7 +19,7 @@
       <label class="check full">{{ form.is_rentable }} {{ form.is_rentable.label }}</label>
       {% include "_field.html" with f=form.daily_rate %}{% include "_field.html" with f=form.agency %}
       {% include "_field.html" with f=form.status %}
-      <p class="help full">AutoHub prélève {{ platform_fee_pct }} % du total de chaque location. La caution (3 jours de location, 100 000 FCFA minimum) vous est remise au départ.</p>
+      <p class="help full">{% if fees_active %}AutoHub prélève {{ platform_fee_pct }} % du total de chaque location. {% endif %}La caution (3 jours de location, 100 000 FCFA minimum) vous est remise au départ.</p>
     </div></fieldset>
     <fieldset class="step"><legend>Vente</legend><div class="grid-2">
       <label class="check full">{{ form.is_for_sale }} {{ form.is_for_sale.label }}</label>

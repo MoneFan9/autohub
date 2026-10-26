@@ -4,14 +4,14 @@
 <div class="page-head"><div><h1>Mes véhicules</h1><p class="muted">{{ vehicles|length }} véhicule{{ vehicles|length|pluralize }}</p></div><div class="head-actions">{% if my_seller %}<a class="btn" href="{% url 'backoffice:vehicle_new' %}">Ajouter un véhicule</a>{% endif %}</div></div>
 {% include "backoffice/_tabs.html" %}
 {% if vehicles %}
-<div class="card table-wrap"><table class="table">
+<div class="card table-wrap"><table class="table stack">
 <thead><tr><th>Véhicule</th><th>Lieu</th><th>Disponibilité</th><th class="amount">Location / jour</th><th class="amount">Vente</th><th><span class="sr-only">Actions</span></th></tr></thead>
 <tbody>{% for v in vehicles %}<tr>
-  <td><b>{{ v.title }}</b><div class="muted small">{{ v.year }} · {{ v.mileage|intcomma }} km{% if v.plate %} · {{ v.plate }}{% endif %}</div></td>
-  <td>{{ v.agency.name }}<div class="muted small">{{ v.agency.city }}</div></td>
-  <td><span class="badge b-{{ v.status }}">{{ v.get_status_display }}</span></td>
-  <td class="amount">{% if v.is_rentable %}{{ v.daily_rate|fcfa }}{% else %}<span class="muted">—</span>{% endif %}</td>
-  <td class="amount">{% if v.is_for_sale %}{{ v.sale_price|fcfa }}{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td class="stack-main"><b>{{ v.title }}</b><div class="muted small">{{ v.year }} · {{ v.mileage|intcomma }} km{% if v.plate %} · {{ v.plate }}{% endif %}</div></td>
+  <td data-label="Lieu">{{ v.agency.name }}<div class="muted small">{{ v.agency.city }}</div></td>
+  <td class="stack-side"><span class="badge b-{{ v.status }}">{{ v.get_status_display }}</span></td>
+  <td class="amount" data-label="Location / jour">{% if v.is_rentable %}{{ v.daily_rate|fcfa }}{% else %}<span class="muted">—</span>{% endif %}</td>
+  <td class="amount" data-label="Vente">{% if v.is_for_sale %}{{ v.sale_price|fcfa }}{% else %}<span class="muted">—</span>{% endif %}</td>
   <td>{% if my_seller and v.agency.seller_id == my_seller.pk %}<a class="btn btn-sm btn-ghost" href="{% url 'backoffice:vehicle_edit' v.pk %}">Modifier</a>{% endif %}</td>
 </tr>{% endfor %}</tbody></table></div>
 {% else %}

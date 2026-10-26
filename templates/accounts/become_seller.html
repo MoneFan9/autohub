@@ -22,8 +22,8 @@
 </form>
 <aside class="card summary-card" aria-labelledby="how-sell"><h2 id="how-sell">Comment ça marche</h2>
   <ul class="trust">
-    <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Vous fixez vos prix, vos dates et vos moyens de paiement.</li>
-    <li><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>Paiement en ligne (Airtel Money, Moov Money, carte) reversé sur votre numéro, moins {{ platform_fee_pct }} % de commission.</li>
+    <li><svg class="i" aria-hidden="true"><use href="#i-check"/></svg>Vous fixez vos prix et vos dates{% if fees_active %} et vos moyens de paiement{% endif %}.</li>
+    {% if fees_active %}<li><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>Paiement en ligne (Airtel Money, Moov Money, carte) reversé sur votre numéro, moins {{ platform_fee_pct }} % de commission.</li>{% else %}<li><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>Gratuit : aucune commission. Le paiement en ligne (Airtel Money, Moov Money, carte) arrivera plus tard.</li>{% endif %}
     <li><svg class="i" aria-hidden="true"><use href="#i-key"/></svg>Espèces : vous encaissez à la remise des clés, après vérification du permis et de la pièce d'identité.</li>
     <li><svg class="i" aria-hidden="true"><use href="#i-shield"/></svg>La caution vous est remise au départ et rendue au retour.</li>
     <li><svg class="i" aria-hidden="true"><use href="#i-cal-check"/></svg>Vente : les acheteurs vous contactent directement, sans commission.</li>

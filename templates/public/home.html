@@ -58,8 +58,8 @@
 {% endif %}
 <section class="how" aria-labelledby="how-title"><h2 id="how-title" class="sr-only">Comment ça marche</h2><ol>
   <li><div class="n">1</div><h3>Choisissez vos dates</h3><p class="muted">Seuls les véhicules réellement libres sur votre période s'affichent, avec le prix total.</p></li>
-  <li><div class="n">2</div><h3>Réservez en ligne</h3><p class="muted">Options, conducteur et paiement sur une seule page : Mobile Money, carte, ou espèces le jour du départ, selon ce que le loueur accepte.</p></li>
+  <li><div class="n">2</div><h3>Réservez en ligne</h3><p class="muted">Options, conducteur et paiement sur une seule page : {% if online_payments == "off" %}vous payez en espèces au propriétaire le jour du départ{% else %}Mobile Money, carte, ou espèces le jour du départ, selon ce que le loueur accepte{% endif %}.</p></li>
   <li><div class="n">3</div><h3>Récupérez les clés</h3><p class="muted">Le loueur vérifie votre permis, reçoit la caution et fait l'état des lieux avec vous, au départ comme au retour.</p></li>
 </ol></section>
-<section class="card panel cta-panel" aria-labelledby="pub-title"><div><h2 id="pub-title">Vous avez un véhicule ?</h2><p class="muted">Louez-le ou vendez-le sur AutoHub. Inscription gratuite, {{ platform_fee_pct }} % de commission sur les locations seulement.</p></div><a class="btn" href="{% url 'accounts:become_seller' %}">Publier un véhicule</a></section>
+<section class="card panel cta-panel" aria-labelledby="pub-title"><div><h2 id="pub-title">Vous avez un véhicule ?</h2><p class="muted">Louez-le ou vendez-le sur AutoHub. {% if fees_active %}Inscription gratuite, {{ platform_fee_pct }} % de commission sur les locations seulement.{% else %}Gratuit : inscription, publication et locations, sans commission.{% endif %}</p></div><a class="btn" href="{% url 'accounts:become_seller' %}">Publier un véhicule</a></section>
 {% endblock %}

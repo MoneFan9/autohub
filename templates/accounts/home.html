@@ -7,7 +7,7 @@
 {% if is_seller %}
 <div class="alert info"><svg class="i" aria-hidden="true"><use href="#i-key"/></svg><div>Vous louez ou vendez en tant que <b>{{ my_seller.display_name|default:"plateforme" }}</b>. <a href="{% url 'backoffice:dashboard' %}">Ouvrir l'espace vendeur</a></div></div>
 {% else %}
-<section class="card panel cta-panel" aria-labelledby="sell-title"><div><h2 id="sell-title">Vous avez un véhicule ?</h2><p class="muted">Louez-le ou vendez-le sur AutoHub. Vous fixez vos prix et vos moyens de paiement ; AutoHub prélève {{ platform_fee_pct }} % sur chaque location, rien sur les ventes.</p></div><a class="btn" href="{% url 'accounts:become_seller' %}">Publier un véhicule</a></section>
+<section class="card panel cta-panel" aria-labelledby="sell-title"><div><h2 id="sell-title">Vous avez un véhicule ?</h2><p class="muted">Louez-le ou vendez-le sur AutoHub. Vous fixez vos prix{% if fees_active %} et vos moyens de paiement ; AutoHub prélève {{ platform_fee_pct }} % sur chaque location, rien sur les ventes.{% else %}, le client vous paie en espèces à la remise des clés. C'est gratuit, sans commission.{% endif %}</p></div><a class="btn" href="{% url 'accounts:become_seller' %}">Publier un véhicule</a></section>
 {% endif %}
 
 <section class="card panel panel-spaced" aria-labelledby="bk-title"><h2 id="bk-title">Mes réservations</h2>

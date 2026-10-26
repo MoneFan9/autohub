@@ -33,7 +33,8 @@
 <h2>5. Prix, paiement et commission</h2>
 <ul>
   <li>Le loueur / vendeur fixe librement ses prix et les moyens de paiement qu'il accepte.</li>
-  <li>Location : AutoHub perçoit une commission de {{ platform_fee_pct }} % du montant de la location (hors caution), à la charge du loueur. Lorsque le client paie en ligne, AutoHub reverse au loueur le montant encaissé, commission déduite. Lorsque le client paie en espèces au loueur, le loueur règle la commission à AutoHub.</li>
+  {% if not fees_active %}<li>Pendant la phase actuelle, où les locations se règlent en espèces entre le client et le loueur, <b>AutoHub ne perçoit aucune commission</b> : le service est gratuit. Les membres seront prévenus avant toute mise en place d'une commission, qui ne s'appliquera qu'aux paiements en ligne.</li>{% endif %}
+  {% if fees_active %}<li>Location : AutoHub perçoit une commission de {{ platform_fee_pct }} % du montant de la location (hors caution), à la charge du loueur. Lorsque le client paie en ligne, AutoHub reverse au loueur le montant encaissé, commission déduite. Lorsque le client paie en espèces au loueur, le loueur règle la commission à AutoHub.</li>{% endif %}
   <li>Vente : aucune commission. L'acheteur et le vendeur conviennent ensemble du paiement et des formalités (carte grise, certificat de cession). <b>Ne versez jamais d'acompte avant d'avoir vu le véhicule et ses papiers.</b></li>
   {% if online_payments == "demo" %}<li>Le site est actuellement en <b>mode démonstration</b> : les paiements en ligne sont simulés et aucun argent n'est débité.</li>{% elif online_payments == "off" %}<li>Les paiements en ligne ne sont pas encore ouverts : la location se règle en espèces au loueur, à la remise des clés.</li>{% endif %}
 </ul>
