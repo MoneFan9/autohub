@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.conf import settings
@@ -8,9 +8,9 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django_otp.plugins.otp_totp.models import TOTPDevice
-from psycopg.types.range import Range
 
 from accounts.forms import LocationForm, SellerForm
 from rentals import services
@@ -19,6 +19,7 @@ from rentals.models import Booking
 from vehicles import services as vehicle_services
 from vehicles.models import Vehicle, VehicleBlock, VehiclePhoto
 
+from . import planning as planning_tools
 from .forms import BlockForm, VehicleForm
 from .roles import is_owner, scope_bookings, scope_vehicles, seller_of, seller_required
 
@@ -67,6 +68,14 @@ def dashboard(request):
     return render(request, "backoffice/dashboard.html", context)
 
 
+def _back_to(request):
+    """Retour à la page d'origine (fiche réservation, planning) ou au tableau de bord."""
+    nxt = request.POST.get("next", "")
+    if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+        return redirect(nxt)
+    return redirect("backoffice:dashboard")
+
+
 def _run(request, reference, fn, needs_inspection=True, with_cash=False):
     booking = get_object_or_404(scope_bookings(Booking.objects.all(), request.user), reference=reference)
     kwargs = {} if needs_inspection else {"by": request.user}
@@ -74,7 +83,7 @@ def _run(request, reference, fn, needs_inspection=True, with_cash=False):
         form = InspectionForm(request.POST)
         if not form.is_valid():
             messages.error(request, f"{booking.reference} : état des lieux incomplet.")
-            return redirect("backoffice:dashboard")
+            return _back_to(request)
         kwargs = {**form.cleaned_data, "user": request.user}
         if not with_cash:
             kwargs.pop("handover_received")
@@ -83,7 +92,7 @@ def _run(request, reference, fn, needs_inspection=True, with_cash=False):
         messages.success(request, f"{booking.reference} : {booking.get_status_display().lower()}.")
     except services.BookingError as exc:
         messages.error(request, f"{booking.reference} : {exc}")
-    return redirect("backoffice:dashboard")
+    return _back_to(request)
 
 
 @seller_required
@@ -106,24 +115,56 @@ def cancel_booking(request, reference):
 
 @seller_required
 def planning(request):
-    """Planning de flotte sur 14 jours (une ligne par véhicule)."""
-    start = timezone.localtime().replace(hour=0, minute=0, second=0, microsecond=0)
-    days = [start + timedelta(days=i) for i in range(14)]
-    end = days[-1] + timedelta(days=1)
+    """Frise de la flotte : navigation par période, réservations et indisponibilités cliquables."""
+    first, span = planning_tools.parse_window(request.GET)
     vehicles = list(scope_vehicles(Vehicle.objects.rentable(), request.user).select_related("agency").order_by("agency__city", "brand"))
-    bookings = scope_bookings(Booking.objects.blocking(), request.user).filter(period__overlap=Range(start, end, "[)")).select_related("customer")
-    by_vehicle = {}
-    for b in bookings:
-        by_vehicle.setdefault(b.vehicle_id, []).append(b)
-    rows = []
-    for v in vehicles:
-        cells = []
-        for d in days:
-            d_end = d + timedelta(days=1)
-            hit = next((b for b in by_vehicle.get(v.id, []) if b.start < d_end and b.end > d), None)
-            cells.append(hit)
-        rows.append((v, cells))
-    return render(request, "backoffice/planning.html", {"days": days, "rows": rows})
+    bookings, blocks = planning_tools.window_queries(scope_bookings(Booking.objects.all(), request.user), vehicles, first, span)
+    days = [first + timedelta(days=i) for i in range(span)]
+    seller = seller_of(request.user)
+    ctx = {
+        "days": days, "span": span, "spans": planning_tools.SPANS, "first": first, "today": timezone.localdate(),
+        "rows": planning_tools.build_rows(vehicles, bookings, blocks, first, span),
+        "prev": first - timedelta(days=span), "next": first + timedelta(days=span), "last": days[-1],
+        "feed_url": settings.SITE_URL + reverse("backoffice:calendar_feed", args=[seller.calendar_token]) if seller else "",
+    }
+    return render(request, "backoffice/planning.html", ctx)
+
+
+@seller_required
+def booking_detail(request, reference):
+    booking = get_object_or_404(
+        scope_bookings(Booking.objects.select_related("vehicle__agency", "customer", "pickup_agency", "return_agency"), request.user),
+        reference=reference,
+    )
+    return render(request, "backoffice/booking_detail.html", {
+        "b": booking, "inspections": booking.inspections.all(), "payments": booking.payments.order_by("created_at"),
+    })
+
+
+def calendar_feed(request, token):
+    """Flux iCalendar public mais secret (le jeton fait office de mot de passe)."""
+    from django.http import HttpResponse
+
+    from accounts.models import Seller
+
+    seller = get_object_or_404(Seller, calendar_token=token)
+    response = HttpResponse(planning_tools.ical(seller, settings.SITE_URL), content_type="text/calendar; charset=utf-8")
+    response["Content-Disposition"] = 'inline; filename="autohub.ics"'
+    response["Cache-Control"] = "private, max-age=900"
+    return response
+
+
+@seller_required
+@require_POST
+def calendar_reset(request):
+    import uuid
+
+    seller = seller_of(request.user)
+    if seller:
+        seller.calendar_token = uuid.uuid4()
+        seller.save(update_fields=["calendar_token"])
+        messages.success(request, "Nouveau lien d'agenda créé : l'ancien ne fonctionne plus. Réabonnez votre téléphone avec le nouveau.")
+    return redirect("backoffice:planning")
 
 
 @seller_required
@@ -152,9 +193,21 @@ def vehicle_edit(request, pk=None):
         ctx.update({
             "photos": vehicle.photos.all(), "kinds": VehiclePhoto.Kind.choices, "missing": vehicle_services.missing_views(vehicle),
             "uploads_enabled": settings.MEDIA_UPLOADS_ENABLED, "max_photos": settings.VEHICLE_MAX_PHOTOS,
-            "blocks": vehicle.blocks.filter(period__endswith__gte=timezone.now()), "block_form": BlockForm(),
+            "blocks": vehicle.blocks.filter(period__endswith__gte=timezone.now()), "block_form": BlockForm(initial=_block_initial(request)),
         })
     return render(request, "backoffice/vehicle_form.html", ctx)
+
+
+def _block_initial(request):
+    """Clic sur un jour libre du planning : la période à bloquer est pré-remplie."""
+    from datetime import date
+
+    try:
+        day = date.fromisoformat(request.GET.get("bloquer", ""))
+    except ValueError:
+        return {}
+    start = timezone.make_aware(datetime.combine(day, datetime.min.time()))
+    return {"start": start, "end": start + timedelta(days=1)}
 
 
 def _own_vehicle(request, pk):
