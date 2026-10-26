@@ -231,3 +231,17 @@ class Report(models.Model):
 
     def __str__(self):
         return f"{self.vehicle.title} · {self.get_reason_display()}"
+
+
+
+class StoredFile(models.Model):
+    """Fichier (photo) conservé en base quand aucun stockage objet n'est configuré : zéro configuration."""
+
+    name = models.CharField(max_length=255, unique=True)
+    content = models.BinaryField()
+    content_type = models.CharField(max_length=60, default="image/jpeg")
+    size = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "fichier stocké"

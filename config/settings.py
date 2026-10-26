@@ -129,15 +129,14 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 WHITENOISE_USE_FINDERS = True
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-# Photos des véhicules : Vercel Blob en ligne (le disque d'une fonction serverless n'est pas persistant),
-# dossier local sinon. Le jeton est ajouté au projet quand on y connecte un magasin Blob.
+# Photos des véhicules : Vercel Blob si un magasin est relié au projet (BLOB_READ_WRITE_TOKEN),
+# sinon dans la base PostgreSQL (aucune configuration ; le disque d'une fonction serverless n'est pas persistant).
 BLOB_READ_WRITE_TOKEN = os.environ.get("BLOB_READ_WRITE_TOKEN", "")
 STORAGES = {
-    "default": {"BACKEND": "vehicles.storage.VercelBlobStorage" if BLOB_READ_WRITE_TOKEN else "django.core.files.storage.FileSystemStorage"},
+    "default": {"BACKEND": "vehicles.storage.VercelBlobStorage" if BLOB_READ_WRITE_TOKEN else "vehicles.storage.DatabaseStorage"},
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
-# En ligne sans magasin Blob, l'envoi de photos est désactivé (rien ne serait conservé).
-MEDIA_UPLOADS_ENABLED = bool(BLOB_READ_WRITE_TOKEN) or not VERCEL_ENV
+MEDIA_UPLOADS_ENABLED = True
 VEHICLE_MAX_PHOTOS = 20
 PHOTO_MAX_BYTES = 4 * 1024 * 1024
 
@@ -168,7 +167,8 @@ PENDING_PAYMENT_MINUTES = 15
 PAYMENT_PROVIDER = os.environ.get("PAYMENT_PROVIDER", "fake")
 # Paiements en ligne : "demo" (simulés, bandeau visible), "off" (espèces à la remise des clés uniquement),
 # "live" (agrégateur réel branché). Ne jamais lancer auprès du public en "demo".
-ONLINE_PAYMENTS = os.environ.get("ONLINE_PAYMENTS", "demo")
+# En production, le site est lancé pour de vrai : espèces uniquement tant qu'aucun agrégateur n'est branché.
+ONLINE_PAYMENTS = os.environ.get("ONLINE_PAYMENTS", "off" if VERCEL_ENV == "production" else "demo")
 # Le client peut annuler en ligne jusqu'à ce délai avant le départ (heures).
 CUSTOMER_CANCEL_HOURS = 24
 
@@ -193,7 +193,7 @@ else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "AutoHub <no-reply@autohub.ga>")
 # Annonces fictives chargées au démarrage si la base est vide (démonstration). 0 pour le lancement réel.
-DEMO_DATA = os.environ.get("DEMO_DATA", "1") == "1"
+DEMO_DATA = os.environ.get("DEMO_DATA", "0" if VERCEL_ENV == "production" else "1") == "1"
 # Tâches planifiées (rappels, expirations) déclenchées par Vercel Cron avec ce secret.
 CRON_SECRET = os.environ.get("CRON_SECRET", "")
 

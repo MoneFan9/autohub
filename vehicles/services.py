@@ -12,6 +12,7 @@ from psycopg.types.range import Range
 from .models import VehicleBlock, VehiclePhoto
 
 MAX_SIDE = 1600
+QUALITY = 80
 
 
 class VehicleError(Exception):
@@ -30,7 +31,7 @@ def _normalize(upload):
     img = ImageOps.exif_transpose(img).convert("RGB")
     img.thumbnail((MAX_SIDE, MAX_SIDE))
     out = io.BytesIO()
-    img.save(out, "JPEG", quality=82, optimize=True, progressive=True)
+    img.save(out, "JPEG", quality=QUALITY, optimize=True, progressive=True)
     return SimpleUploadedFile(f"{uuid.uuid4().hex[:12]}.jpg", out.getvalue(), content_type="image/jpeg")
 
 

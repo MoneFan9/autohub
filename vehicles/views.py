@@ -161,3 +161,16 @@ def report_vehicle(request, pk):
     else:
         messages.error(request, "Choisissez un motif pour signaler l'annonce.")
     return redirect(back)
+
+
+def stored_file(request, name):
+    from django.http import HttpResponse
+    from django.views.decorators.cache import patch_cache_control
+
+    from .models import StoredFile
+
+    f = get_object_or_404(StoredFile.objects.only("content", "content_type"), name=name)
+    response = HttpResponse(bytes(f.content), content_type=f.content_type)
+    # Nom unique par photo : le contenu ne change jamais, cache d'un an.
+    patch_cache_control(response, public=True, max_age=31536000, immutable=True)
+    return response

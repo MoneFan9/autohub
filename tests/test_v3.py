@@ -43,7 +43,7 @@ class TestPhotos:
         r = upload(client, vehicle, image_file())
         assert r.status_code == 302 and r["Location"].endswith("#photos")
         photo = VehiclePhoto.objects.get()
-        img = Image.open(photo.image.path)
+        img = Image.open(photo.image.open())
         assert img.format == "JPEG" and max(img.size) == 1600 and photo.kind == "front"
         html = client.get("/").content.decode()
         assert photo.image.url in html  # couverture dans les résultats
@@ -55,7 +55,7 @@ class TestPhotos:
         Image.new("RGB", (800, 600)).save(buf, "JPEG", exif=exif)
         client.force_login(agent)
         upload(client, vehicle, SimpleUploadedFile("gps.jpg", buf.getvalue(), content_type="image/jpeg"))
-        assert not Image.open(VehiclePhoto.objects.get().image.path).getexif()
+        assert not Image.open(VehiclePhoto.objects.get().image.open()).getexif()
 
     def test_non_image_is_refused(self, client, agent, vehicle):
         client.force_login(agent)
@@ -237,3 +237,34 @@ class TestPublic:
 
     def test_demo_banner(self, client, db):
         assert "Site en démonstration" in client.get("/").content.decode()
+
+
+
+class TestDatabaseStorage:
+    def test_photo_is_stored_in_database_and_served_with_cache(self, client, agent, vehicle):
+        from vehicles.models import StoredFile
+
+        client.force_login(agent)
+        upload(client, vehicle, image_file())
+        photo = VehiclePhoto.objects.get()
+        assert photo.image.url.startswith("/fichiers/vehicules/") and StoredFile.objects.count() == 1
+        r = client.get(photo.image.url)
+        assert r.status_code == 200 and r["Content-Type"] == "image/jpeg" and "immutable" in r["Cache-Control"]
+        assert Image.open(io.BytesIO(r.content)).size[0] == 1600
+        client.post(f"/espace-vendeur/vehicules/{vehicle.pk}/photos/{photo.pk}/", {"action": "delete"})
+        assert not StoredFile.objects.exists()
+
+    def test_production_defaults_are_launch_settings(self, monkeypatch):
+        import importlib
+
+        import config.settings as conf
+
+        monkeypatch.setenv("VERCEL_ENV", "production")
+        monkeypatch.delenv("ONLINE_PAYMENTS", raising=False)
+        monkeypatch.delenv("DEMO_DATA", raising=False)
+        try:
+            importlib.reload(conf)
+            assert conf.ONLINE_PAYMENTS == "off" and conf.DEMO_DATA is False
+        finally:
+            monkeypatch.delenv("VERCEL_ENV")
+            importlib.reload(conf)

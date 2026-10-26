@@ -1,5 +1,3 @@
-from django.conf import settings
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
@@ -37,6 +35,7 @@ urlpatterns = [
     path("sitemap.xml", sitemap, {"sitemaps": SITEMAPS}, name="sitemap"),
     path("robots.txt", pages.robots),
     path("taches/quotidiennes/", pages.daily_tasks),
+    path("fichiers/<path:name>", views.stored_file, name="stored-file"),
     path("compte/", include("accounts.urls")),
     path("espace-vendeur/", include("backoffice.urls")),
     # Anciennes adresses de l'espace agence (V1)
@@ -46,4 +45,4 @@ urlpatterns = [
     path("agence/mot-de-passe/", RedirectView.as_view(pattern_name="accounts:password")),
     path("api/", include((router.urls, "api"))),
     path("admin/", admin.site.urls),
-] + (static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) if not settings.BLOB_READ_WRITE_TOKEN else [])
+]
