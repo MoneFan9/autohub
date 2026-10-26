@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 
@@ -77,9 +78,20 @@ class SellerForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance.pk:
             del self.fields["accept_terms"]
+        self.online_open = settings.ONLINE_PAYMENTS != "off"
+        if not self.online_open:
+            # Paiement en ligne pas encore ouvert : grisé ; espèces imposées (seul moyen possible).
+            for name in ("accepts_airtel", "accepts_moov", "accepts_card"):
+                self.fields[name].disabled = True
+                self.initial[name] = False
+            self.fields["accepts_cash"].disabled = True
+            self.initial["accepts_cash"] = True
+            self.fields["payout_number"].disabled = True
 
     def clean(self):
         data = super().clean()
+        if not self.online_open:
+            return data
         if not any(data.get(f) for f in ("accepts_airtel", "accepts_moov", "accepts_card", "accepts_cash")):
             raise forms.ValidationError("Acceptez au moins un moyen de paiement.")
         if (data.get("accepts_airtel") or data.get("accepts_moov") or data.get("accepts_card")) and not data.get("payout_number"):

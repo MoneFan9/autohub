@@ -16,6 +16,8 @@ def method_from_token(token):
 
 
 def platform_fee(amount):
+    if not settings.FEES_ACTIVE:
+        return Decimal("0")
     return (Decimal(amount) * Decimal(settings.PLATFORM_FEE_RATE)).quantize(Decimal("1"), ROUND_HALF_UP)
 
 

@@ -7,8 +7,8 @@ Départ : {{ b.start|date:"l j F Y, H:i" }} — {{ b.pickup_agency.name }}
 Retour : {{ b.end|date:"l j F Y, H:i" }} — {{ b.return_agency.name }}
 Total : {{ b.total_amount|fcfa }} ({{ b.payment_label }}){% if b.balance_due %}, à encaisser en espèces au départ{% endif %}
 Caution à recevoir au départ : {{ b.deposit_amount|fcfa }}
-Commission AutoHub : {{ b.platform_fee|fcfa }}
-
+{% if b.platform_fee %}Commission AutoHub : {{ b.platform_fee|fcfa }}
+{% endif %}
 Avant de remettre les clés, vérifiez le permis ({{ customer.license_number }}) et une pièce d'identité au nom du client.
 
 Votre tableau de bord : {{ dashboard_url }}

@@ -7,11 +7,11 @@
 <div class="kpis">
   <div class="card kpi"><b>{{ kpis.fleet }}</b><span>véhicules en flotte</span></div>
   <div class="card kpi"><b>{{ kpis.occupancy }} %</b><span>occupation actuelle</span></div>
-  {% if is_platform_view %}<div class="card kpi"><b>{{ kpis.fees_30d|fcfa }}</b><span>commissions sur 30 jours</span></div>{% else %}<div class="card kpi"><b>{{ kpis.net_30d|fcfa }}</b><span>gagné sur 30 jours, commission déduite</span></div>{% endif %}
+  {% if is_platform_view and fees_active %}<div class="card kpi"><b>{{ kpis.fees_30d|fcfa }}</b><span>commissions sur 30 jours</span></div>{% else %}<div class="card kpi"><b>{{ kpis.net_30d|fcfa }}</b><span>{% if is_platform_view %}de locations sur 30 jours{% else %}gagné sur 30 jours{% if fees_active %}, commission déduite{% endif %}{% endif %}</span></div>{% endif %}
   <div class="card kpi"><b>{{ kpis.active }}</b><span>locations en cours</span></div>
   <div class="card kpi"><b>{{ kpis.for_sale }}</b><span>véhicules en vente</span></div>
 </div>
-{% if not is_platform_view and kpis.fees_30d %}<p class="muted small money-line">Sur 30 jours : {{ kpis.to_pay_out|fcfa }} payés en ligne, à vous reverser · commission sur les espèces encaissées par vous : {{ kpis.fees_due|fcfa }} à régler à AutoHub.</p>{% endif %}
+{% if fees_active and not is_platform_view and kpis.fees_30d %}<p class="muted small money-line">Sur 30 jours : {{ kpis.to_pay_out|fcfa }} payés en ligne, à vous reverser · commission sur les espèces encaissées par vous : {{ kpis.fees_due|fcfa }} à régler à AutoHub.</p>{% endif %}
 <div class="fleet" aria-label="État de la flotte">{% for label, n in fleet_by_status %}<span class="badge">{{ label }} · {{ n }}</span>{% endfor %}</div>
 
 <div class="panels">
@@ -51,8 +51,8 @@
 </div>
 
 <section class="card panel panel-spaced" aria-labelledby="rec"><h2 id="rec">Dernières réservations</h2>
-<div class="table-wrap"><table class="table">
-<thead><tr><th>Référence</th><th>Client</th><th>Véhicule</th><th>Période</th><th>Paiement</th><th class="amount">Total</th><th class="amount">Commission</th><th>Statut</th></tr></thead>
-<tbody>{% for b in recent %}<tr><td><a class="num" href="{% url 'backoffice:booking' b.reference %}">{{ b.reference }}</a></td><td>{{ b.customer }}</td><td>{{ b.vehicle.title }}</td><td class="num">{{ b.start|date:"d/m" }} → {{ b.end|date:"d/m" }}</td><td>{{ b.payment_label }}</td><td class="amount">{{ b.total_amount|fcfa }}</td><td class="amount">{{ b.platform_fee|fcfa }}</td><td><span class="badge b-{{ b.status }}">{{ b.get_status_display }}</span></td></tr>{% endfor %}</tbody>
+<div class="table-wrap"><table class="table stack">
+<thead><tr><th>Réservation</th><th>Véhicule</th><th>Période</th><th>Paiement</th><th class="amount">Total</th>{% if fees_active %}<th class="amount">Commission</th>{% endif %}<th>Statut</th></tr></thead>
+<tbody>{% for b in recent %}<tr><td class="stack-main"><a class="num" href="{% url 'backoffice:booking' b.reference %}">{{ b.reference }}</a> · {{ b.customer }}</td><td data-label="Véhicule">{{ b.vehicle.title }}</td><td class="num" data-label="Période">{{ b.start|date:"d/m" }} → {{ b.end|date:"d/m" }}</td><td data-label="Paiement">{{ b.payment_label }}</td><td class="amount" data-label="Total">{{ b.total_amount|fcfa }}</td>{% if fees_active %}<td class="amount" data-label="Commission">{{ b.platform_fee|fcfa }}</td>{% endif %}<td class="stack-side"><span class="badge b-{{ b.status }}">{{ b.get_status_display }}</span></td></tr>{% endfor %}</tbody>
 </table></div></section>
 {% endblock %}

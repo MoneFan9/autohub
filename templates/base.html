@@ -49,7 +49,7 @@
 </div>
 </main>
 <footer class="site-footer"><div class="wrap">
-  <p>AutoHub met en relation particuliers et professionnels qui louent ou vendent un véhicule au Gabon. Chaque loueur fixe ses prix, remet les clés et encaisse ; AutoHub prélève {{ platform_fee_pct }} % de commission sur les locations.</p>
+  <p>AutoHub met en relation particuliers et professionnels qui louent ou vendent un véhicule au Gabon. Chaque loueur fixe ses prix, remet les clés et encaisse.{% if fees_active %} AutoHub prélève {{ platform_fee_pct }} % de commission sur les locations.{% else %} Inscription et publication gratuites.{% endif %}</p>
   <nav class="footer-links" aria-label="Pied de page"><a href="{% url 'accounts:become_seller' %}">Publier un véhicule</a><a href="{% url 'legal' 'cgu' %}">Conditions d'utilisation</a><a href="{% url 'legal' 'confidentialite' %}">Confidentialité</a><a href="{% url 'legal' 'annulation' %}">Annulation et caution</a><a href="{% url 'legal' 'mentions-legales' %}">Mentions légales</a>{% if contact_email %}<a href="mailto:{{ contact_email }}">Contact</a>{% endif %}</nav>
 </div></footer>
 <script>

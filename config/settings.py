@@ -169,6 +169,8 @@ PAYMENT_PROVIDER = os.environ.get("PAYMENT_PROVIDER", "fake")
 # "live" (agrégateur réel branché). Ne jamais lancer auprès du public en "demo".
 # En production, le site est lancé pour de vrai : espèces uniquement tant qu'aucun agrégateur n'est branché.
 ONLINE_PAYMENTS = os.environ.get("ONLINE_PAYMENTS", "off" if VERCEL_ENV == "production" else "demo")
+# Pas de commission tant que tout se règle en espèces entre loueur et client : le site est gratuit.
+FEES_ACTIVE = ONLINE_PAYMENTS != "off"
 # Le client peut annuler en ligne jusqu'à ce délai avant le départ (heures).
 CUSTOMER_CANCEL_HOURS = 24
 

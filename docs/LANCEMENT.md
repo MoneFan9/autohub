@@ -13,7 +13,7 @@ Ce guide liste ce qu'il reste à faire pour l'ouvrir au public, sans créer de s
 | `CONTACT_EMAIL` | déjà `lomep610@gmail.com` par défaut | Contact public, signalements, exercice des droits sur les données. |
 | `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `DEFAULT_FROM_EMAIL` | fournisseur SMTP gratuit (Brevo : 300 e-mails/jour) | Mot de passe oublié, confirmations, rappels, annulations. Sans eux, aucun e-mail ne part. |
 | `CRON_SECRET` | une longue chaîne aléatoire | Protège la tâche quotidienne (rappels la veille du départ, expiration des paiements en attente), lancée par Vercel à 17 h UTC (18 h à Libreville). |
-| `PLATFORM_FEE_RATE` | `0` conseillé au début | Lancement gratuit : attire les premiers loueurs et évite de percevoir des revenus avant d'avoir un statut (voir § 4). Passer à `0.02` ensuite. |
+| `PLATFORM_FEE_RATE` | inutile au début | Tant que `ONLINE_PAYMENTS=off`, aucune commission n'est calculée ni affichée : le site est gratuit. Le taux (2 % par défaut) ne s'applique qu'une fois le paiement en ligne ouvert. |
 | `SITE_URL` | l'adresse publique (domaine) | Liens dans les e-mails, aperçus WhatsApp/Facebook, plan du site. |
 
 Ensuite :

@@ -27,8 +27,8 @@
     <h2 id="money">Montants</h2>
     <table class="summary">
       <tr><td>Total ({{ b.payment_label }})</td><td>{{ b.total_amount|fcfa }}</td></tr>
-      <tr><td>Commission AutoHub</td><td>−{{ b.platform_fee|fcfa }}</td></tr>
-      <tr class="total"><td>Pour vous</td><td>{{ b.seller_amount|fcfa }}</td></tr>
+      {% if b.platform_fee %}<tr><td>Commission AutoHub</td><td>−{{ b.platform_fee|fcfa }}</td></tr>
+      <tr class="total"><td>Pour vous</td><td>{{ b.seller_amount|fcfa }}</td></tr>{% endif %}
       {% if b.balance_due %}<tr><td>À encaisser en espèces</td><td>{{ b.balance_due|fcfa }}</td></tr>{% endif %}
       <tr class="deposit"><td>Caution</td><td>{{ b.deposit_amount|fcfa }}</td></tr>
     </table>

@@ -2,8 +2,9 @@
   <div class="seller-avatar" aria-hidden="true">{{ seller.display_name|slice:":1"|upper }}</div>
   <div class="seller-body"><h2 id="seller-title" class="h3">{{ seller.display_name }}</h2>
     <p class="muted small">{{ seller.get_kind_display }} · {{ seller.city }} · sur AutoHub depuis {{ seller.created_at|date:"F Y" }}</p>
+    {% if contact and seller.phone %}<p class="num seller-phone">{{ seller.phone }}</p>{% endif %}
     {% if contact %}<div class="seller-actions">
-      {% if seller.phone %}<a class="btn btn-sm" href="tel:{{ seller.phone|cut:' ' }}"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>Appeler {{ seller.phone }}</a>{% endif %}
+      {% if seller.phone %}<a class="btn btn-sm" href="tel:{{ seller.phone|cut:' ' }}"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg>Appeler</a>{% endif %}
       {% if seller.whatsapp_link %}<a class="btn btn-sm btn-ghost" href="{{ seller.whatsapp_link }}?text={{ contact_text|urlencode }}" rel="noopener">WhatsApp</a>{% endif %}
     </div>{% endif %}
   </div>

@@ -407,3 +407,43 @@ label.check input, .option input[type="checkbox"] { width: 18px; height: 18px; m
   .plan td.cell { min-width: 44px; }
   .plan-jump { order: 3; }
 }
+.option.is-disabled { cursor: not-allowed; opacity: .55; background: var(--surface-2); }
+.option.is-disabled:hover { border-color: var(--line-2); }
+.option input:disabled { cursor: not-allowed; }
+
+/* V4 : finitions responsive (audit 320 → 1024 px) */
+.btn { text-wrap: balance; text-align: center; line-height: 1.25; }
+.nav a { white-space: nowrap; }
+@media (max-width: 1024px) { .nav span.lg-only { display: none; } .nav span.sm-only { display: inline; } }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.kpi { min-width: 0; }
+.kpi b { overflow-wrap: anywhere; }
+.facts { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.fact { min-width: 0; }
+.price-row { flex-wrap: wrap; }
+.price-side { text-align: right; margin-left: auto; }
+.cta-panel > div { flex: 1 1 auto; min-width: 0; }
+.cta-panel > .btn { flex: none; }
+@media (max-width: 900px) { .cta-panel { flex-direction: column; align-items: flex-start; } }
+.row-head > div:first-child { min-width: 0; }
+.table td.num, .table .num { white-space: nowrap; }
+/* Tableaux en fiches empilées sur téléphone */
+@media (max-width: 700px) {
+  .table.stack thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .table.stack, .table.stack tbody, .table.stack tr, .table.stack td { display: block; width: 100%; }
+  .table.stack tr { padding: var(--s-3) 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 2px var(--s-3); }
+  .table.stack tr:last-child { border-bottom: 0; }
+  .table.stack td { border: 0; padding: 0; text-align: left; }
+  .table.stack td[data-label]::before { content: attr(data-label) " · "; color: var(--muted); font-size: 12px; }
+  .table.stack td.stack-main { grid-column: 1; font-weight: 600; }
+  .table.stack td.stack-side { grid-column: 2; grid-row: 1; text-align: right; }
+  .table.stack td.amount { text-align: left; }
+}
+.inspect .btn, .seller-actions .btn { white-space: nowrap; }
+.seller-phone { margin: var(--s-1) 0 0; font-weight: 600; }
+@media (max-width: 700px) {
+  .table.stack td:not(.stack-main):not(.stack-side) { grid-column: 1 / -1; }
+  .table.stack td.stack-main { line-height: 1.35; }
+}
+@media (max-width: 480px) { .kpi b { font-size: 22px; } }
+@media (max-width: 700px) { .card.table-wrap .table.stack tr { padding-left: var(--s-4); padding-right: var(--s-4); } }

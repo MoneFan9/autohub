@@ -9,12 +9,12 @@
   </div>
 </fieldset>
 <fieldset class="step"><legend>Paiements acceptés</legend>
-  {% if online_payments == "off" %}<p class="alert info">Pour l'instant, toutes les locations se règlent en espèces à la remise des clés. Vos choix ci-dessous s'appliqueront dès l'ouverture du paiement en ligne.</p>{% endif %}
+  {% if online_payments == "off" %}<p class="help step-lead">Pour l'instant, le client vous paie en espèces à la remise des clés. Le paiement en ligne arrivera plus tard.</p>{% endif %}
   <div class="options" role="group" aria-label="Moyens de paiement acceptés">
-    <label class="option">{{ form.accepts_airtel }}<span class="opt-text"><span class="opt-label">Airtel Money</span><span class="opt-desc">Reversé sur votre numéro de versement</span></span></label>
-    <label class="option">{{ form.accepts_moov }}<span class="opt-text"><span class="opt-label">Moov Money</span><span class="opt-desc">Reversé sur votre numéro de versement</span></span></label>
-    <label class="option">{{ form.accepts_card }}<span class="opt-text"><span class="opt-label">Carte bancaire</span><span class="opt-desc">Visa, Mastercard</span></span></label>
-    <label class="option">{{ form.accepts_cash }}<span class="opt-text"><span class="opt-label">Espèces</span><span class="opt-desc">Vous encaissez à la remise des clés, commission due à AutoHub</span></span></label>
+    <label class="option">{{ form.accepts_cash }}<span class="opt-text"><span class="opt-label">Espèces</span><span class="opt-desc">Vous encaissez à la remise des clés{% if fees_active %}, commission due à AutoHub{% endif %}</span></span></label>
+    <label class="option{% if online_payments == 'off' %} is-disabled{% endif %}">{{ form.accepts_airtel }}<span class="opt-text"><span class="opt-label">Airtel Money</span><span class="opt-desc">{% if online_payments == 'off' %}Bientôt disponible{% else %}Reversé sur votre numéro de versement{% endif %}</span></span></label>
+    <label class="option{% if online_payments == 'off' %} is-disabled{% endif %}">{{ form.accepts_moov }}<span class="opt-text"><span class="opt-label">Moov Money</span><span class="opt-desc">{% if online_payments == 'off' %}Bientôt disponible{% else %}Reversé sur votre numéro de versement{% endif %}</span></span></label>
+    <label class="option{% if online_payments == 'off' %} is-disabled{% endif %}">{{ form.accepts_card }}<span class="opt-text"><span class="opt-label">Carte bancaire</span><span class="opt-desc">{% if online_payments == 'off' %}Bientôt disponible{% else %}Visa, Mastercard{% endif %}</span></span></label>
   </div>
-  <div class="grid-2 spaced">{% include "_field.html" with f=form.payout_number %}</div>
+  {% if online_payments != "off" %}<div class="grid-2 spaced">{% include "_field.html" with f=form.payout_number %}</div>{% endif %}
 </fieldset>
